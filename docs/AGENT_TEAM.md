@@ -50,6 +50,22 @@ Every agent's context includes:
 
 The migration seeds your day-one vision and your operating setup, so the team plans against them from the first mission.
 
+## The dump: everything you know, searchable
+
+`/admin/dump` takes anything you throw at it. Drop in any number of files at once, or paste text:
+
+| What you drop in | What happens |
+| --- | --- |
+| Text, Markdown, CSV, JSON, logs, subtitles | Read directly |
+| PDF, Word, Excel, OpenDocument, HTML, XML | Converted to text by [Workers AI Markdown conversion](https://developers.cloudflare.com/workers-ai/features/markdown-conversion/) |
+| Photos and screenshots | Described in words by a Workers AI vision model |
+| Voice notes (mp3, m4a, wav, ogg and more, up to 10 MB) | Transcribed by Whisper on Workers AI |
+| Video, and any file over 25 MB | Stored, not read |
+
+Originals go to the `tiva-hq-dump` R2 bucket (binding `DUMP`). The text is split into chunks and full-text indexed in D1 (`dump_files`, `dump_chunks`). Before Hermes answers a chat, plans a mission, or an agent works an assignment, it searches the dump for what matters and gets the best matching excerpts in its prompt. Open any file to see the text that was read, download the original, or delete it.
+
+Uploads are capped at 100 MB per file by Cloudflare. Images and voice notes use Workers AI, which has a free daily allowance before usage is billed. Don't put other people's identity documents (Aadhaar, PAN) here; those belong in the KYC vault.
+
 ## 24/7 routines
 
 An hourly cron trigger (`wrangler.jsonc`) launches a mission for each routine that's due:
@@ -70,7 +86,7 @@ The agents plan, research, analyse, draft and decide. They have no access to ema
 
 ## Setup
 
-1. Apply the migrations: `npm run db:migrate` (local) or `npm run db:migrate:remote`.
+1. Create the R2 bucket for the dump (`npx wrangler r2 bucket create tiva-hq-dump`), then apply the migrations: `npm run db:migrate` (local) or `npm run db:migrate:remote`.
 2. Add secrets:
    ```bash
    npx wrangler secret put FOUNDER_PASSWORD

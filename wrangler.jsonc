@@ -22,6 +22,16 @@
       "database_id": "9503ed5f-3ac1-4f0e-840a-b408aaabc038"
     }
   ],
+  // The Founder's dump: uploaded originals, read with Workers AI.
+  "r2_buckets": [
+    {
+      "binding": "DUMP",
+      "bucket_name": "tiva-hq-dump"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
   "workflows": [
     {
       "name": "saas-admin-template-customer-workflow",

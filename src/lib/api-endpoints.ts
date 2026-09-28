@@ -442,6 +442,27 @@ const apiEndpoints: APIEndpoint[] = [
     responses: [{ name: "Created", example: { entry: { id: 3, title: "Q4 goal" } } }],
   },
   {
+    method: "POST",
+    path: "/api/dump",
+    description:
+      "Upload one file to the dump as the raw request body. Send Content-Type: application/octet-stream, the file name in X-File-Name (URI-encoded) and its type in X-File-Type. TIVA HQ stores the original and reads its text for search.",
+    responses: [{ name: "Created", example: { file: { id: 12, name: "Q3 plan.pdf", kind: "document", status: "ready" } } }],
+  },
+  {
+    method: "POST",
+    path: "/api/dump/notes",
+    description: "Dump text straight in: ideas, plans, notes, a chat transcript.",
+    requestBody: { example: { title: "Launch ideas", content: "1. Flavoured water for gyms..." } },
+    responses: [{ name: "Created", example: { file: { id: 13, kind: "note", status: "ready" } } }],
+  },
+  {
+    method: "GET",
+    path: "/api/dump",
+    description:
+      "List the dump, or search it with ?q=. GET /api/dump/:id returns one file with its text; DELETE /api/dump/:id removes it.",
+    responses: [{ name: "Search", example: { results: [{ file_id: 12, name: "Q3 plan.pdf", excerpt: "…launch in Bengaluru…" }] } }],
+  },
+  {
     method: "GET",
     path: "/api/agents",
     description: "The agent team. PATCH /api/agents/:id updates an agent's status, mission, charter or model.",

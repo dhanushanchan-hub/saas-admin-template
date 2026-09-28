@@ -2,12 +2,14 @@ import { EntityService } from "../services/entity";
 import { KnowledgeService } from "../services/knowledge";
 import { MissionService } from "../services/mission";
 import { ConversationService } from "../services/conversation";
+import { DumpService } from "../services/dump";
 import { callAgent, DEFAULT_MODEL } from "./llm";
 import { launchMission } from "./orchestrator";
 import {
   agentInstructions,
   chatPrompt,
   chatSchema,
+  filesSection,
   ORCHESTRATOR_ID,
   teamContext,
 } from "./prompts";
@@ -28,10 +30,11 @@ export async function chatWithHermes(env: AgentTeamEnv, message: string) {
   const hermes = await agents.getById(ORCHESTRATOR_ID);
   if (!hermes) throw new Error(`The orchestrator agent "${ORCHESTRATOR_ID}" is missing`);
 
-  const [entities, recent, history] = await Promise.all([
+  const [entities, recent, history, files] = await Promise.all([
     new EntityService(env.DB).getTree(),
     missions.getAll({ limit: 10 }),
     conversation.getRecent(HISTORY),
+    new DumpService(env.DB).relevant(message),
   ]);
 
   const { output } = await callAgent(env, {
@@ -41,7 +44,7 @@ export async function chatWithHermes(env: AgentTeamEnv, message: string) {
       await knowledge.getForAgent(hermes, null, { seeEverything: true }),
       entities,
     ),
-    prompt: chatPrompt({ history, recent, message, now: new Date() }),
+    prompt: chatPrompt({ history, recent, message, now: new Date() }) + filesSection(files),
     schema: chatSchema,
   });
 

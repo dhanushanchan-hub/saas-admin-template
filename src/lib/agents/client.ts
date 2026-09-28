@@ -29,6 +29,26 @@ const send = (apiToken: string, method: string, path: string, body?: unknown) =>
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
+// Uploads one file to the dump as the raw request body. The type travels in
+// X-File-Type so the upload is never mistaken for a cross-site form post.
+const uploadDumpFile = async (apiToken: string, file: File) => {
+  const response = await fetch("/api/dump", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiToken}`,
+      "Content-Type": "application/octet-stream",
+      "X-File-Name": encodeURIComponent(file.name),
+      "X-File-Type": file.type || "application/octet-stream",
+    },
+    body: file,
+  });
+  const data: any = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.message ?? `Upload failed (${response.status})`);
+  }
+  return data;
+};
+
 export const agentTeamApi = (apiToken: string) => ({
   createMission: (body: {
     directive: string;
@@ -49,6 +69,10 @@ export const agentTeamApi = (apiToken: string) => ({
   updateRoutine: (id: string, body: Record<string, unknown>) =>
     send(apiToken, "PATCH", `/api/routines/${id}`, body),
   runRoutine: (id: string) => send(apiToken, "POST", `/api/routines/${id}/run`),
+  uploadDumpFile: (file: File) => uploadDumpFile(apiToken, file),
+  createDumpNote: (body: { title?: string; content: string }) =>
+    send(apiToken, "POST", "/api/dump/notes", body),
+  deleteDumpFile: (id: number) => send(apiToken, "DELETE", `/api/dump/${id}`),
   chat: (message: string) =>
     send(apiToken, "POST", "/api/hermes/chat", { message }),
   createEntity: (body: {

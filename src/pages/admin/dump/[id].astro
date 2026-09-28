@@ -1,0 +1,47 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DeleteDumpFileButton } from '@/components/agents/dump-controls';
+import { buttonVariants } from '@/components/ui/button';
+
+import { DumpService } from '@/lib/services/dump';
+import { formatTime } from '@/lib/agents/format';
+
+// Long files show a preview; the rest is still searchable.
+const PREVIEW_CHARS = 200_000;
+
+const { API_TOKEN, DB } = Astro.locals.runtime.env;
+const dump = new DumpService(DB);
+const file = await dump.getById(Number(Astro.params.id));
+if (!file) return Astro.redirect('/admin/dump');
+
+const text = file.status === 'ready' ? await dump.getText(file.id) : '';
+---
+
+<Layout title={file.name}>
+  <div slot="actions" class="flex items-center gap-2">
+    {file.object_key && (
+      <a class={buttonVariants({ variant: 'outline' })} href={`/admin/dump/${file.id}/original`}>Download original</a>
+    )}
+    <DeleteDumpFileButton client:only="react" apiToken={API_TOKEN} id={file.id} />
+  </div>
+
+  <p class="text-sm text-muted-foreground">
+    <span class="capitalize">{file.kind}</span> · {file.mime_type} · added {formatTime(file.created_at)} ·
+    <a class="underline" href="/admin/dump">back to the dump</a>
+  </p>
+  {file.detail && <p class="text-sm">{file.detail}</p>}
+
+  {text ? (
+    <>
+      <pre class="max-h-[70vh] overflow-auto whitespace-pre-wrap rounded-md border p-4 text-sm">{text.slice(0, PREVIEW_CHARS)}</pre>
+      {text.length > PREVIEW_CHARS && (
+        <p class="text-sm text-muted-foreground">
+          Showing the first {PREVIEW_CHARS.toLocaleString('en-US')} of {text.length.toLocaleString('en-US')} characters.
+          All of it is searchable.
+        </p>
+      )}
+    </>
+  ) : (
+    <p class="font-medium text-muted-foreground">No text was read from this file.</p>
+  )}
+</Layout>

@@ -4,6 +4,7 @@ const groups = [
   [
     { href: "/admin/hermes", label: "Hermes" },
     { href: "/admin/command", label: "Command Center" },
+    { href: "/admin/dump", label: "Dump" },
     { href: "/admin/missions", label: "Missions" },
     { href: "/admin/agents", label: "Agents" },
     { href: "/admin/knowledge", label: "Knowledge" },

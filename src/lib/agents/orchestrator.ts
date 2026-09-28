@@ -1,5 +1,6 @@
 import { ActivityService } from "../services/activity";
 import { AgentService } from "../services/agent";
+import { DumpService } from "../services/dump";
 import { EntityService } from "../services/entity";
 import { KnowledgeService } from "../services/knowledge";
 import { MissionService, type PlannedTask } from "../services/mission";
@@ -8,6 +9,7 @@ import {
   agentInstructions,
   briefPrompt,
   briefSchema,
+  filesSection,
   MAX_TASKS,
   ORCHESTRATOR_ID,
   planPrompt,
@@ -113,11 +115,12 @@ export async function planMission(env: AgentTeamEnv, missionId: number) {
   const { mission, entity } = await loadMission(env, missionId);
   await missions.update(missionId, { status: "planning", error: null });
 
-  const [hermes, team, allEntities, recent] = await Promise.all([
+  const [hermes, team, allEntities, recent, files] = await Promise.all([
     getOrchestrator(env),
     agents.getActive(),
     entities.getTree(),
     recentMissions(env, missionId),
+    new DumpService(env.DB).relevant(`${mission.title}\n${mission.directive}`),
   ]);
   const teamIds = team.map((agent) => agent.id);
   if (!teamIds.includes(ORCHESTRATOR_ID)) teamIds.unshift(ORCHESTRATOR_ID);
@@ -129,7 +132,7 @@ export async function planMission(env: AgentTeamEnv, missionId: number) {
       await knowledge.getForAgent(hermes, mission.entity_id, { seeEverything: true }),
       allEntities,
     ),
-    prompt: planPrompt({ mission, entity, team, recent }),
+    prompt: planPrompt({ mission, entity, team, recent }) + filesSection(files),
     schema: planSchema(teamIds),
   });
 
@@ -194,10 +197,11 @@ export async function executeTask(env: AgentTeamEnv, taskId: number) {
   if (task.status === "completed") return { taskId, status: task.status };
 
   const { mission, entity } = await loadMission(env, task.mission_id);
-  const [allAgents, allEntities, siblings] = await Promise.all([
+  const [allAgents, allEntities, siblings, files] = await Promise.all([
     agents.getAll(),
     entities.getTree(),
     missions.getTasks(task.mission_id),
+    new DumpService(env.DB).relevant(`${task.title}\n${task.instructions}`),
   ]);
   const byId = new Map(allAgents.map((agent) => [agent.id, agent]));
   const agent = byId.get(task.agent_id);
@@ -221,7 +225,7 @@ export async function executeTask(env: AgentTeamEnv, taskId: number) {
       ),
       siblings,
       agents: byId,
-    }),
+    }) + filesSection(files),
     schema: resultSchema,
   });
 

@@ -10,6 +10,8 @@ declare namespace Cloudflare {
 		ANTHROPIC_API_KEY: string;
 		FOUNDER_PASSWORD: string;
 		DB: D1Database;
+		DUMP: R2Bucket;
+		AI: Ai;
 		CUSTOMER_WORKFLOW: Workflow /* CustomerWorkflow */;
 		MISSION_WORKFLOW: Workflow /* MissionWorkflow */;
 	}

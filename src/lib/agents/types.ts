@@ -145,6 +145,9 @@ export type Activity = {
 export type AgentTeamEnv = {
   DB: D1Database;
   MISSION_WORKFLOW: Workflow;
+  // The Founder's dump: files in R2, read with Workers AI.
+  DUMP?: R2Bucket;
+  AI?: Ai;
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_BASE_URL?: string;
   AGENT_MODEL?: string;
