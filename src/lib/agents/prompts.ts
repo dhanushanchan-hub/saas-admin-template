@@ -287,3 +287,78 @@ ${companyState(recent)}
 Write the Founder's brief for this mission. Open with the outcome in two or three sentences. Then give the key results from each assignment, keeping the substance the Founder needs (numbers, drafts, plans) rather than just describing it, and the next actions with owners. Point out any conflicts between assignments, gaps from failed or skipped work, and assumptions the Founder must confirm.
 
 List the decisions the Founder must make separately, each with a clear recommendation. Merge duplicates raised by different agents.`;
+
+// Conversation
+
+export const chatSchema = z.object({
+  reply: z
+    .string()
+    .describe("Hermes's reply to the Founder, in Markdown. It may be read aloud."),
+  action: z
+    .string()
+    .describe('Exactly one of: "none", "start_mission", "remember".'),
+  mission_directive: z
+    .string()
+    .describe('For start_mission: the complete directive for the team. Otherwise "".'),
+  mission_title: z.string().describe('For start_mission: a short title. Otherwise "".'),
+  mission_priority: z
+    .string()
+    .describe('For start_mission: "low", "normal", "high" or "critical". Otherwise "".'),
+  mission_entity_id: z
+    .string()
+    .describe('For start_mission: the entity id it is for, or "" for the whole group.'),
+  memory_title: z.string().describe('For remember: a short title. Otherwise "".'),
+  memory_content: z
+    .string()
+    .describe('For remember: what to remember, in the Founder\'s terms. Otherwise "".'),
+});
+
+export const chatPrompt = ({
+  history,
+  recent,
+  message,
+  now,
+}: {
+  history: { role: "founder" | "hermes"; content: string; created_at: string }[];
+  recent: Mission[];
+  message: string;
+  now: Date;
+}) => {
+  const briefs = recent
+    .filter((mission) => mission.brief)
+    .slice(0, 3)
+    .map(
+      (mission) =>
+        `<brief mission="${mission.id}" title="${mission.title}">\n${mission.brief!.slice(0, 2000)}\n</brief>`,
+    )
+    .join("\n\n");
+  const transcript = history
+    .map((entry) => `${entry.role === "founder" ? "Founder" : "Hermes"}: ${entry.content}`)
+    .join("\n\n");
+
+  return `\
+It is ${now.toISOString().slice(0, 16).replace("T", " ")} UTC.
+
+<recent_missions>
+${companyState(recent)}
+</recent_missions>
+
+<latest_briefs>
+${briefs || "None yet."}
+</latest_briefs>
+
+<conversation>
+${transcript || "This is the start of the conversation."}
+</conversation>
+
+<founder_message>
+${message}
+</founder_message>
+
+You're talking with the Founder directly, by chat or voice. Reply as Hermes: warm, direct and brief. Keep it to a few sentences unless they ask for detail, and avoid tables because the reply may be read aloud.
+
+Choose one action:
+- "start_mission" when the Founder wants work that needs the team: plans, research, analysis, drafts, reviews. Write a complete directive in their words, adding the context from this conversation, and tell them you've put the team on it. Don't do the specialists' work yourself in chat.
+- "remember" when the Founder shares a lasting fact, goal, preference or instruction. Save it in their words and confirm you'll remember it.
+- "none" for everything else: questions you can answer from memory, the missions and the briefs above, status updates and conversation.`;
+};

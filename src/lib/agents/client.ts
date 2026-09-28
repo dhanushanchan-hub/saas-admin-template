@@ -49,6 +49,8 @@ export const agentTeamApi = (apiToken: string) => ({
   updateRoutine: (id: string, body: Record<string, unknown>) =>
     send(apiToken, "PATCH", `/api/routines/${id}`, body),
   runRoutine: (id: string) => send(apiToken, "POST", `/api/routines/${id}/run`),
+  chat: (message: string) =>
+    send(apiToken, "POST", "/api/hermes/chat", { message }),
   createEntity: (body: {
     name: string;
     kind: string;

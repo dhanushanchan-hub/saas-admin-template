@@ -1,0 +1,22 @@
+{
+  "name": "TIVA HQ",
+  "short_name": "TIVA HQ",
+  "description": "Hermes and the TIVA executive agent team.",
+  "id": "/admin/hermes",
+  "start_url": "/admin/hermes",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "Talk to Hermes", "url": "/admin/hermes" },
+    { "name": "Command Center", "url": "/admin/command" },
+    { "name": "Missions", "url": "/admin/missions" }
+  ]
+}

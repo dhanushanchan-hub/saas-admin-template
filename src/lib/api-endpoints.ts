@@ -367,6 +367,25 @@ const apiEndpoints: APIEndpoint[] = [
   },
   {
     method: "POST",
+    path: "/api/hermes/chat",
+    description:
+      "Talk to Hermes. Hermes replies, and may start a mission or save what you said to the team's memory. GET returns the conversation.",
+    requestBody: {
+      example: { message: "Have the team plan the Master ID launch" },
+    },
+    responses: [
+      {
+        name: "Response",
+        example: {
+          reply: "On it. Atlas and Ledger are planning it now.",
+          mission: { id: 12, title: "Master ID launch plan", status: "queued" },
+          memory: null,
+        },
+      },
+    ],
+  },
+  {
+    method: "POST",
     path: "/api/missions",
     description:
       "Give the agent team a directive. Hermes plans it, the executives work on it in the background, and the mission ends with a brief. Poll GET /api/missions/:id for progress.",

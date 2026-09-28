@@ -34,8 +34,15 @@ const apiTokenSet = API_TOKEN && API_TOKEN !== '';
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content={brand} />
     <meta name="generator" content={Astro.generator} />
     <title>{title ? `${title} - ${brand}` : brand}</title>
   </head>
@@ -51,6 +58,12 @@ const apiTokenSet = API_TOKEN && API_TOKEN !== '';
       </div>
       <slot />
     </div>
+    <script is:inline>
+      // Installable app (desktop and iPhone home screen); see public/sw.js.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+      }
+    </script>
   </body>
 </html>
 

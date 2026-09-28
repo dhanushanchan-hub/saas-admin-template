@@ -70,7 +70,7 @@ The agents plan, research, analyse, draft and decide. They have no access to ema
 
 ## Setup
 
-1. Apply the migration: `npm run db:migrate` (local) or `npm run db:migrate:remote`.
+1. Apply the migrations: `npm run db:migrate` (local) or `npm run db:migrate:remote`.
 2. Add secrets:
    ```bash
    npx wrangler secret put API_TOKEN
@@ -85,9 +85,25 @@ The agents plan, research, analyse, draft and decide. They have no access to ema
 
 > **Protect the dashboard before you deploy.** Like the template it's built on, `/admin` has no login of its own, and the pages embed the API token for their API calls. Put the whole Worker behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/applications/configure-apps/self-hosted-public-app/). For OpenClaw, n8n or other machine clients, create an Access service token.
 
+## Talking to Hermes (chat and voice)
+
+`/admin/hermes` is a running conversation with Hermes, and it's where the installed app opens. Hermes answers from memory, recent missions and the latest briefs. When you ask for real work, Hermes starts a mission and links it. When you tell it something lasting, it saves that to the team's memory. The conversation is stored, so Hermes remembers it on later turns.
+
+- **Voice in:** tap the mic to speak (Chrome, Edge and Safari, using the browser's speech recognition). The button hides where the browser doesn't support it; on iPhone, the keyboard's dictation key always works.
+- **Voice out:** the speaker button reads Hermes's replies aloud with the device's built-in voices.
+
+## Install it as an app
+
+TIVA HQ is an installable web app (a PWA), so the same dashboard runs as an app on every device, with no app store:
+
+- **Windows desktop (the Azure VM) or Mac:** open TIVA HQ in Edge or Chrome, then choose *Install TIVA HQ* from the address bar or the menu. It gets its own window, taskbar icon and Start menu entry.
+- **iPhone / iPad:** open it in Safari, tap *Share*, then *Add to Home Screen*.
+
+The app opens on Hermes, with shortcuts to the Command Center and Missions. The service worker (`public/sw.js`) caches only the fingerprinted build assets. Pages and API data always come live from the network.
+
 ## Talking to the team from anywhere
 
-- **Dashboard**: `/admin/command` (directives, decisions, memory, activity), plus Missions, Agents, Knowledge, Routines and Group Structure.
-- **REST API**: `POST /api/missions`, `GET /api/missions/:id`, `GET /api/briefing`, `POST /api/knowledge` and the rest, documented on `/admin`. Send `Authorization: Bearer <API_TOKEN>` and `Content-Type: application/json`.
+- **Dashboard**: `/admin/hermes` (conversation), `/admin/command` (directives, decisions, memory, activity), plus Missions, Agents, Knowledge, Routines and Group Structure.
+- **REST API**: `POST /api/hermes/chat`, `POST /api/missions`, `GET /api/missions/:id`, `GET /api/briefing`, `POST /api/knowledge` and the rest, documented on `/admin`. Send `Authorization: Bearer <API_TOKEN>` and `Content-Type: application/json`.
 - **OpenClaw, Hermes Agent, Claude Code**: install the `integrations/agent-skills/tiva-agent-team` skill. For the Azure Windows desktop, `integrations/openclaw-windows/setup-openclaw.ps1` does it in one step; see [its guide](../integrations/openclaw-windows/README.md).
 - **Terminal or n8n**: `node integrations/agent-skills/tiva-agent-team/scripts/tiva.mjs brief`.

@@ -1,11 +1,12 @@
 ---
-import { Bot, CircleCheck, Loader, MessageSquareWarning } from 'lucide-react';
+import { Bot, CircleCheck, Loader, MessageSquareWarning, MessagesSquare } from 'lucide-react';
 
 import Layout from '@/layouts/Layout.astro';
 import { DirectiveForm } from '@/components/agents/directive-form';
 import { MissingModelKeyCard } from '@/components/agents/missing-model-key-card';
 import { RememberForm } from '@/components/agents/remember-form';
 import { StatusBadge } from '@/components/agents/status-badge';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { ActivityService } from '@/lib/services/activity';
@@ -38,6 +39,10 @@ const tiles = [
 ---
 
 <Layout title="Command Center">
+  <div slot="actions">
+    <a class={buttonVariants()} href="/admin/hermes"><MessagesSquare className="mr-2 h-4 w-4" /> Talk to Hermes</a>
+  </div>
+
   <div class="space-y-6">
     {!ANTHROPIC_API_KEY && <MissingModelKeyCard />}
 
