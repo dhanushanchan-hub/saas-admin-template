@@ -12,7 +12,7 @@ A complete admin dashboard template built with Astro, Shadcn UI, and Cloudflare'
 
 This fork adds TIVA HQ: an executive team of Claude-powered agents led by **Hermes**, the Founder's Chief of Staff and 24/7 assistant. It includes a world-class CTO, a CFO, General Counsel, a COO, a CMO, a CRO and more, 14 agents in all. Give a directive from the Command Center (`/admin/command`), the API or OpenClaw. Hermes plans it, the executives work in parallel, and you get one brief with the decisions only you can make. Talk to Hermes by chat or voice at `/admin/hermes`, and install the dashboard as an app on your desktop or iPhone. Routines run around the clock, and every agent learns from the Founder's knowledge base and from the team's past work.
 
-See [docs/AGENT_TEAM.md](docs/AGENT_TEAM.md) for how it works and how to set it up. See [integrations/openclaw-windows](integrations/openclaw-windows/README.md) to connect OpenClaw on a Windows desktop. See [docs/CLAUDE_CODE_TOOLKIT.md](docs/CLAUDE_CODE_TOOLKIT.md) for the Claude Code tools the repo ships with: SkillSpector, Reticle, Chisle, UI Skills and Anti-Slop.
+See [docs/AGENT_TEAM.md](docs/AGENT_TEAM.md) for how it works and how to set it up. See [integrations/openclaw-windows](integrations/openclaw-windows/README.md) to connect OpenClaw on a Windows desktop. See [docs/CLAUDE_CODE_TOOLKIT.md](docs/CLAUDE_CODE_TOOLKIT.md) for the Claude Code tools the repo ships with: SkillSpector, Reticle, Chisle, UI Skills and Anti-Slop. [integrations/windows](integrations/windows/README.md) sets up a Windows PC with Claude Code, Kimi Code and OpenClaw in one run.
 
 ## Features
 

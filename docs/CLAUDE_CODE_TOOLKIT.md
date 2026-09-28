@@ -17,7 +17,7 @@ You rarely need the slash commands. Claude picks a skill up by itself when the t
 - **Chisle** runs three hooks: at session start (loads its rules), on each prompt (a one-line reminder) and after tool calls (long outputs keep their start, end and error lines; the full text is saved under `~/.claude/chisle-spill/`). Say "stop chisle" or "normal mode" for full-length answers in a session, and `/chisle` to switch it back on. To turn it off for good, set `CHISLE_DEFAULT_MODE=off`, on your machine or as a variable on the cloud environment. `CHISLE_COMPRESS=0` keeps the short replies but leaves tool output untouched.
 - **SkillSpector** installs itself in the background when a cloud session starts (`.claude/hooks/toolkit-setup.mjs`).
 - **Reticle**'s MCP server starts with each session, pinned to `@reticlehq/server@3.3.0`. It does nothing until the app runs with Reticle's SDK. The first time Claude verifies a change, the Reticle skill adds that dev-only SDK to the app and starts the dev server without asking, so look over that diff before merging it.
-- **Anti-Slop** applies its rules while Claude builds (mode 1, set in `CLAUDE.md`). Ask for an "antislop audit" to get a numbered findings list instead.
+- **Anti-Slop** applies its rules while Claude builds (mode 1, set in `AGENTS.md`). Ask for an "antislop audit" to get a numbered findings list instead.
 
 ## Security review
 
@@ -40,6 +40,8 @@ skillspector scan .claude/hooks --no-llm --baseline .claude/toolkit/skillspector
 Read any new finding in the file it names. Add a rule with the reason only if it's safe, then commit. Or ask Claude to "update the Claude Code toolkit" and review its pull request. Without `--latest`, `sync.mjs` restores the pinned versions and undoes hand edits.
 
 ## On your own computer
+
+On Windows, one script installs Claude Code, Kimi Code and OpenClaw, shares these skills with all three, and cleans up the PC: [integrations/windows](../integrations/windows/README.md).
 
 Open the repo in Claude Code, trust the folder, and approve the `reticle` MCP server when asked. Node 22 or later (the app needs it anyway) runs the Chisle hooks. For SkillSpector scans, install its CLI once with [uv](https://docs.astral.sh/uv/), using the `ref` from `sources.json`:
 
