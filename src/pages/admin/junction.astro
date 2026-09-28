@@ -1,100 +1,19 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-import { MissionService } from '@/lib/services/mission';
-import { CloudRunService } from '@/lib/services/cloud';
-import {
-  connectorGroups,
-  selfHostedTools,
-  STATUS_LABEL,
-  type ConnectorStatus,
-} from '@/lib/agents/connectors';
+import { JunctionMonitor } from '@/components/agents/junction-monitor';
+import { buildStatusSnapshot } from '@/lib/agents/health';
 
 const env = Astro.locals.runtime.env;
-const origin = Astro.url.origin;
-
-const [stats, cloudRuns] = await Promise.all([
-  new MissionService(env.DB).getStats(),
-  new CloudRunService(env.DB).getAll({ limit: 100 }),
-]);
-
-const groups = connectorGroups(env, origin);
-const tools = selfHostedTools(env);
-
-const live = [...groups.flatMap((g) => g.connectors), ...tools].filter(
-  (c) => c.status === 'live' || c.status === 'connected',
-).length;
-const total = groups.flatMap((g) => g.connectors).length + tools.length;
-
-const chip: Record<ConnectorStatus, string> = {
-  live: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
-  connected: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300',
-  configure: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
-  external: 'bg-muted text-muted-foreground',
-};
-
-const summary = [
-  { label: 'Connectors live', value: `${live}/${total}` },
-  { label: 'Missions in flight', value: stats.in_flight },
-  { label: 'Briefs (24h)', value: stats.completed_24h },
-  { label: 'Cloud runs', value: cloudRuns.length },
-];
-
-const allGroups = [
-  ...groups,
-  {
-    id: 'tools',
-    title: 'Self-hosted tools',
-    description:
-      'Your own tools on the workstation (see ops/self-hosted). Set TOOLS_BASE_URL to link straight to them.',
-    connectors: tools,
-  },
-];
+const snapshot = await buildStatusSnapshot(env, Astro.url.origin);
 ---
 
 <Layout title="Master Junction">
   <p class="max-w-3xl text-muted-foreground">
     One junction for everything TIVA runs — your executive team, the outside agents,
-    MCP connectors, cloud accounts and your self-hosted tools. Each shows its live
-    status and takes you straight there.
+    MCP connectors and devices, social platforms, cloud accounts and your self-hosted
+    tools. Each shows whether it's <strong>active</strong> or needs a key, live, and
+    links straight there. It refreshes on its own; a green dot means active.
   </p>
 
-  <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-    {summary.map((item) => (
-      <Card>
-        <CardContent class="pt-6">
-          <div class="text-2xl font-bold">{item.value}</div>
-          <div class="text-xs text-muted-foreground">{item.label}</div>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-
-  {allGroups.map((group) => (
-    <section class="space-y-3">
-      <div>
-        <h2 class="text-lg font-semibold">{group.title}</h2>
-        <p class="max-w-3xl text-sm text-muted-foreground">{group.description}</p>
-      </div>
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {group.connectors.map((connector) => (
-          <a
-            href={connector.href}
-            target={connector.external ? '_blank' : undefined}
-            rel={connector.external ? 'noreferrer' : undefined}
-            class="flex flex-col gap-1 rounded-lg border p-4 transition-colors hover:bg-muted/50"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <span class="font-medium">{connector.name}</span>
-              <span class={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${chip[connector.status]}`}>
-                {STATUS_LABEL[connector.status]}
-              </span>
-            </div>
-            <span class="text-sm text-muted-foreground">{connector.detail}</span>
-          </a>
-        ))}
-      </div>
-    </section>
-  ))}
+  <JunctionMonitor client:load apiToken={env.API_TOKEN} initial={snapshot} />
 </Layout>

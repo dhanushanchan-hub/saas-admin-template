@@ -6,10 +6,34 @@ so there's nothing new to host.
 
 ## The master junction (`/admin/junction`)
 
-One dashboard for everything TIVA runs: the team, the cloud agents, MCP
-connectors, cloud accounts (Cloudflare, Azure, Oracle) and the self-hosted tools.
-Each shows a live status — **Live**, **Connected**, **Add key** or **Connect** —
-computed from what's actually configured, and links straight there.
+One monitoring dashboard for everything TIVA runs: the team, the cloud agents,
+MCP connectors and devices, social platforms, cloud accounts (Cloudflare, Azure,
+Oracle) and the self-hosted tools. Each shows whether it's **active** or needs a
+key, with a green dot for active. The page auto-refreshes (polling `/api/status`)
+and shows live counts — connectors active, missions in flight, briefs, cloud runs.
+
+A connector turns **active** as soon as its key/secret is set on the Worker. Set
+these (as secrets or `vars`) to light each one up:
+
+| Connector | Env key(s) |
+| --- | --- |
+| Kimi | `KIMI_API_KEY` or `MOONSHOT_API_KEY` |
+| Windows MCP / iOS MCP | `WINDOWS_MCP_URL` / `IOS_MCP_URL` |
+| Canva | `CANVA_ACCESS_TOKEN` |
+| X (Twitter) | `X_API_KEY` or `TWITTER_BEARER_TOKEN` |
+| LinkedIn | `LINKEDIN_ACCESS_TOKEN` |
+| Instagram / Facebook / WhatsApp | `META_ACCESS_TOKEN` (or the per-app token) |
+| YouTube | `YOUTUBE_API_KEY` or `GOOGLE_API_KEY` |
+| TikTok | `TIKTOK_ACCESS_TOKEN` |
+| Reddit | `REDDIT_CLIENT_ID` |
+| Telegram | `TELEGRAM_BOT_TOKEN` |
+| Azure / Oracle | `AZURE_SUBSCRIPTION_ID` / `ORACLE_TENANCY_OCID` |
+| Self-hosted tools | `TOOLS_BASE_URL` (your workstation address) |
+
+The status is read from configuration — a live snapshot of what's wired — not a
+deep uptime probe of each third party (many run on private networks or need
+per-account OAuth). `GET /api/status` returns the same snapshot as JSON for your
+own uptime checks.
 
 ## The Cloud page (`/admin/cloud`)
 

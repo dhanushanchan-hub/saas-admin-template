@@ -92,4 +92,5 @@ export const agentTeamApi = (apiToken: string) => ({
     origin?: string;
   }) => send(apiToken, "POST", "/api/agents/cloud", body),
   getCloudRun: (id: number) => send(apiToken, "GET", `/api/agents/cloud/${id}`),
+  status: () => send(apiToken, "GET", "/api/status"),
 });

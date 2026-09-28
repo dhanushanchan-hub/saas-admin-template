@@ -522,6 +522,22 @@ const apiEndpoints: APIEndpoint[] = [
       },
     ],
   },
+  {
+    method: "GET",
+    path: "/api/status",
+    description:
+      "The master junction snapshot: every connector's status (active / add key / connect) grouped, plus mission and cloud-run metrics. Powers /admin/junction; also good for uptime checks.",
+    responses: [
+      {
+        name: "Response",
+        example: {
+          summary: { active: 6, total: 30, groups: 6 },
+          metrics: { missions_in_flight: 1, briefs_24h: 3, cloud_runs: 4, last_activity: "2026-09-28 15:20:00" },
+          groups: [{ id: "team", title: "Your team", active: 3, total: 3, connectors: [{ id: "hq", name: "TIVA HQ", status: "live", active: true }] }],
+        },
+      },
+    ],
+  },
 ];
 
 export { apiEndpoints };
