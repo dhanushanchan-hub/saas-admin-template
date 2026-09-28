@@ -9,6 +9,8 @@
   "observability": {
     "enabled": true
   },
+  // Preview copies of TIVA HQ are public and read the same company data, so keep them off.
+  "preview_urls": false,
   "upload_source_maps": true,
   "vars": {
     "EXAMPLE_VALUE": "example_value",
