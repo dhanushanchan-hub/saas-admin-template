@@ -1,0 +1,58 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "mcp__reticle",
+      "Bash(skillspector scan:*)",
+      "Bash(skillspector --version)"
+    ]
+  },
+  "enabledMcpjsonServers": ["reticle"],
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/chisle-activate.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/toolkit-setup.mjs\"",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/chisle-mode-tracker.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Agent|WebFetch|WebSearch|Grep|Glob|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/chisle-compress-output.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

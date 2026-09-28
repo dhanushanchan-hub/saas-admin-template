@@ -1,0 +1,59 @@
+# Reviewed SkillSpector findings for the vendored Claude Code toolkit.
+# Every rule below was checked against the flagged line before it was accepted.
+# Anything a rule doesn't cover fails the SkillSpector workflow until someone
+# reviews it and adds a rule with a reason. Used by:
+#   skillspector scan .claude/skills --no-llm --baseline .claude/toolkit/skillspector-baseline.yaml --fail-on-findings
+#   skillspector scan .claude/hooks  --no-llm --baseline .claude/toolkit/skillspector-baseline.yaml --fail-on-findings
+version: 2
+scanner_version: 2.12.0
+rules:
+  # anti-slop
+  - id: AR2
+    path: antislop-copywriting/SKILL.md
+    message: "*without warning*"
+    reason: "False positive: 'announced without warning' is the example sentence in the em-dash rule, not an instruction to drop warnings."
+  - id: EA2
+    path: antislop-human/SKILL.md
+    message: "*without checking*"
+    reason: "False positive: describes the slop being caught (a colour chosen without checking the contrast standard)."
+  - id: EA2
+    path: antislop/SKILL.md
+    message: "*without confirmation*"
+    reason: "False positive: the rule forbids generating assets as final without confirmation."
+  - id: EA2
+    path: antislop/SKILL.md
+    message: "*without asking*"
+    reason: "False positive: 'generate directly without asking again' applies only when explicit instructions already exist."
+  - id: AS3
+    path: antislop/SKILL.md
+    message: "*skills/antislop-*"
+    reason: "Benign: the core skill points to its own companion antislop-* skills, vendored next to it."
+  - id: RP1
+    path: antislop/SKILL.md
+    reason: "Accepted: 'npx antislop-ai --update' appears only in update instructions; this repo updates through .claude/toolkit/sync.mjs."
+
+  # ui-skills
+  - id: RP1
+    path: ui-skills-root/SKILL.md
+    reason: "Accepted: documents the 'npx ui-skills' CLI, which runs only on request and through Claude Code's permission prompt."
+  - id: RP1
+    path: create-design-md/SKILL.md
+    reason: "Accepted: the 'npx @google/design.md' commands run only while building a DESIGN.md, through Claude Code's permission prompt."
+
+  # reticle
+  - id: RP1
+    path: reticle/SKILL.md
+    reason: "Accepted: Reticle's setup runs 'npx @reticlehq/server@latest init'. The MCP server itself is pinned in .mcp.json."
+  - id: EA2
+    path: reticle/SKILL.md
+    message: "*do not ask the user*"
+    reason: "Accepted by design: Reticle installs its dev-only SDK and starts the dev server without asking. Claude Code's permission prompts still apply and the changes arrive as a reviewable diff."
+
+  # chisle hooks
+  - id: AS3
+    path: chisle-config.js
+    message: "*skills/chisle/SKILL.md*"
+    reason: "Benign: Chisle reads its own vendored ruleset at .claude/skills/chisle/SKILL.md."
+  - id: RP1
+    path: chisle-activate.js
+    reason: "Benign: 'npx chisle' is text in an update notice and never executed; the notice is off for this vendored install (no plugin manifest)."
