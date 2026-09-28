@@ -1,0 +1,47 @@
+name: SkillSpector
+
+# Security-scans the Claude Code skills and hooks vendored in .claude/ with
+# NVIDIA SkillSpector. Fails on any finding not already reviewed in
+# .claude/toolkit/skillspector-baseline.yaml.
+
+on:
+  pull_request:
+    paths:
+      - ".claude/**"
+      - ".mcp.json"
+      - ".github/workflows/skillspector.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".claude/**"
+      - ".mcp.json"
+      - ".github/workflows/skillspector.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan skills and hooks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SkillSpector (pinned in .claude/toolkit/sources.json)
+        run: |
+          repo=$(jq -r .skillspector.repo .claude/toolkit/sources.json)
+          ref=$(jq -r .skillspector.ref .claude/toolkit/sources.json)
+          pip install --quiet "git+${repo}@${ref}"
+          skillspector --version
+
+      - name: Scan skills
+        run: skillspector scan .claude/skills --no-llm --baseline .claude/toolkit/skillspector-baseline.yaml --fail-on-findings
+
+      - name: Scan hooks
+        run: skillspector scan .claude/hooks --no-llm --baseline .claude/toolkit/skillspector-baseline.yaml --fail-on-findings

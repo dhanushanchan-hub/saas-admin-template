@@ -1,0 +1,71 @@
+{
+  "skillspector": {
+    "repo": "https://github.com/NVIDIA/skillspector",
+    "ref": "79b855bda1bcd2f57c14cad3f92dfa235f124c30",
+    "license": "LICENSE",
+    "copy": {
+      "skills/skill-inspector": ".claude/skills/skill-inspector"
+    }
+  },
+  "reticle": {
+    "repo": "https://github.com/reticlehq/reticle",
+    "ref": "34dcdceb02dd218c631f8b074d272979dd92dd80",
+    "license": "LICENSE",
+    "copy": {
+      "plugin/SKILL.md": ".claude/skills/reticle/SKILL.md"
+    },
+    "mcpServers": "plugin/.claude-plugin/plugin.json"
+  },
+  "chisle": {
+    "repo": "https://github.com/JayPokale/Chisle",
+    "ref": "0c21d856831f74a4ba4afaa261c22be50280e77b",
+    "license": "LICENSE",
+    "copy": {
+      "skills/chisle": ".claude/skills/chisle",
+      "skills/chisle-audit": ".claude/skills/chisle-audit",
+      "skills/chisle-help": ".claude/skills/chisle-help",
+      "skills/chisle-review": ".claude/skills/chisle-review",
+      "hooks/package.json": ".claude/hooks/package.json",
+      "hooks/chisle-activate.js": ".claude/hooks/chisle-activate.js",
+      "hooks/chisle-compress-output.js": ".claude/hooks/chisle-compress-output.js",
+      "hooks/chisle-config.js": ".claude/hooks/chisle-config.js",
+      "hooks/chisle-mode.js": ".claude/hooks/chisle-mode.js",
+      "hooks/chisle-mode-tracker.js": ".claude/hooks/chisle-mode-tracker.js"
+    },
+    "patches": [
+      {
+        "file": ".claude/hooks/chisle-activate.js",
+        "why": "The statusline script isn't vendored (cloud sessions have no status bar), so don't have Claude offer to install it every session.",
+        "find": "    if (!hasStatusline) {",
+        "replace": "    if (!hasStatusline && fs.existsSync(path.join(__dirname, 'chisle-statusline.sh'))) {"
+      }
+    ]
+  },
+  "ui-skills": {
+    "repo": "https://github.com/ibelick/ui-skills",
+    "ref": "ee4596c4c86a5049ef9b9731f92e4f4fed0c04c1",
+    "license": "LICENSE",
+    "copy": {
+      "skills/baseline-ui": ".claude/skills/baseline-ui",
+      "skills/create-design-md": ".claude/skills/create-design-md",
+      "skills/fixing-accessibility": ".claude/skills/fixing-accessibility",
+      "skills/fixing-metadata": ".claude/skills/fixing-metadata",
+      "skills/fixing-motion-performance": ".claude/skills/fixing-motion-performance",
+      "skills/improve-ui": ".claude/skills/improve-ui",
+      "skills/ui-skills-root": ".claude/skills/ui-skills-root"
+    }
+  },
+  "anti-slop": {
+    "repo": "https://github.com/miqdadbadjuber/anti-slop",
+    "ref": "a56a8a78229516238375111a799001a5f24953cf",
+    "license": "LICENSE",
+    "copy": {
+      "skills/antislop": ".claude/skills/antislop",
+      "skills/antislop-code": ".claude/skills/antislop-code",
+      "skills/antislop-copywriting": ".claude/skills/antislop-copywriting",
+      "skills/antislop-human": ".claude/skills/antislop-human",
+      "skills/antislop-layoutmobile": ".claude/skills/antislop-layoutmobile",
+      "skills/antislop-ui": ".claude/skills/antislop-ui"
+    }
+  }
+}
