@@ -73,17 +73,24 @@ The agents plan, research, analyse, draft and decide. They have no access to ema
 1. Apply the migrations: `npm run db:migrate` (local) or `npm run db:migrate:remote`.
 2. Add secrets:
    ```bash
+   npx wrangler secret put FOUNDER_PASSWORD
    npx wrangler secret put API_TOKEN
    npx wrangler secret put ANTHROPIC_API_KEY
    ```
-   For local development, put both in `.dev.vars` (see `.dev.vars.example`).
+   For local development, put them in `.dev.vars` (see `.dev.vars.example`).
 3. Optional settings in `wrangler.jsonc` → `vars`:
    - `COMPANY_NAME` (default `TIVA`)
    - `AGENT_MODEL` (default `claude-opus-5`). Agents call Claude with structured outputs and prompt caching. On the Opus 5 and Fable 5 families they use server-side refusal fallbacks (`fallbacks: "default"`).
    - `ANTHROPIC_BASE_URL`, for routing through Cloudflare AI Gateway.
 4. Deploy: `npm run deploy`. The cron trigger and the mission workflow deploy with the Worker. Cloudflare only creates a new Workflow on a real deploy, so preview builds of branches can't start missions until this has been deployed from `main` once.
 
-> **Protect the dashboard before you deploy.** Like the template it's built on, `/admin` has no login of its own, and the pages embed the API token for their API calls. Put the whole Worker behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/applications/configure-apps/self-hosted-public-app/). For OpenClaw, n8n or other machine clients, create an Access service token.
+## Sign-in
+
+Every page needs the Founder's password, the `FOUNDER_PASSWORD` secret (at least 16 characters). Until it is set, the dashboard stays locked and `/login` explains how to set it. A sign-in lasts 30 days on that device. Changing the password signs out every device. `src/middleware.ts` enforces it and `src/lib/auth.ts` signs the session cookie.
+
+The REST API doesn't use the login: every `/api/*` route still requires `Authorization: Bearer <API_TOKEN>`, so OpenClaw, n8n and the CLI keep working. Signed-in pages embed the API token for their own API calls, so only share the password with people you'd give the token to.
+
+For a second layer, put the Worker, including its `workers.dev` and preview URLs, behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/applications/configure-apps/self-hosted-public-app/). Machine clients then also need an Access service token.
 
 ## Talking to Hermes (chat and voice)
 

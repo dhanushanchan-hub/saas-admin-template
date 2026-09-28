@@ -8,6 +8,7 @@ declare namespace Cloudflare {
 		AGENT_MODEL: "claude-opus-5";
 		API_TOKEN: string;
 		ANTHROPIC_API_KEY: string;
+		FOUNDER_PASSWORD: string;
 		DB: D1Database;
 		CUSTOMER_WORKFLOW: Workflow /* CustomerWorkflow */;
 		MISSION_WORKFLOW: Workflow /* MissionWorkflow */;
@@ -18,7 +19,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "EXAMPLE_VALUE" | "COMPANY_NAME" | "AGENT_MODEL" | "API_TOKEN" | "ANTHROPIC_API_KEY">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "EXAMPLE_VALUE" | "COMPANY_NAME" | "AGENT_MODEL" | "API_TOKEN" | "ANTHROPIC_API_KEY" | "FOUNDER_PASSWORD">> {}
 }
 
 // Begin runtime types

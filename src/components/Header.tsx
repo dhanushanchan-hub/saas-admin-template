@@ -58,6 +58,14 @@ export function Header({
           ))}
         </div>
       ))}
+      <form method="post" action="/api/auth/logout" className="ml-auto">
+        <button
+          type="submit"
+          className="text-sm font-medium leading-none text-muted-foreground hover:text-foreground"
+        >
+          Sign out
+        </button>
+      </form>
     </nav>
   );
 }

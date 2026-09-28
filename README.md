@@ -101,9 +101,10 @@ npm run deploy
 $ npm run db:migrate:remote
 ```
 
-8. Set your production API token and Anthropic API key (the agent team needs the key):
+8. Set the founder password (at least 16 characters; every page needs it), your production API token, and your Anthropic API key (the agent team needs the key):
 
 ```bash
+npx wrangler secret put FOUNDER_PASSWORD
 npx wrangler secret put API_TOKEN
 npx wrangler secret put ANTHROPIC_API_KEY
 ```

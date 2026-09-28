@@ -1,0 +1,94 @@
+---
+import '@/styles/globals.css'
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  MIN_PASSWORD_LENGTH,
+  SESSION_COOKIE,
+  passwordConfigured,
+  safeNext,
+  verifySession,
+} from '@/lib/auth';
+
+const { COMPANY_NAME, FOUNDER_PASSWORD } = Astro.locals.runtime.env;
+const brand = COMPANY_NAME ? `${COMPANY_NAME} HQ` : 'SaaS Admin Template';
+const password = FOUNDER_PASSWORD?.trim();
+const configured = passwordConfigured(password);
+const next = safeNext(Astro.url.searchParams.get('next'));
+const failed = Astro.url.searchParams.has('error');
+
+if (configured && (await verifySession(password, Astro.cookies.get(SESSION_COOKIE)?.value))) {
+  return Astro.redirect(next, 302);
+}
+if (!configured) Astro.response.status = 503;
+---
+
+<script is:inline>
+  const theme = typeof localStorage !== 'undefined' && localStorage.getItem('theme');
+  const isDark = theme ? theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.classList[isDark ? 'add' : 'remove']('dark');
+</script>
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <title>Sign in - {brand}</title>
+  </head>
+  <body>
+    <main class="flex min-h-screen items-center justify-center p-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>{brand}</CardTitle>
+          <CardDescription>
+            {configured ? 'Founder sign-in' : 'Locked until a founder password is set'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {configured ? (
+            <form method="post" action="/api/auth/login" class="space-y-4">
+              <input type="hidden" name="next" value={next} />
+              <label for="password" class="text-sm font-medium">Password</label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+                autofocus
+              />
+              {failed && (
+                <p class="text-sm text-destructive" role="alert">Wrong password. Try again.</p>
+              )}
+              <Button type="submit" className="w-full">Sign in</Button>
+            </form>
+          ) : (
+            <div class="space-y-2 text-sm text-muted-foreground">
+              <p>
+                Add a secret named <code>FOUNDER_PASSWORD</code> of at least {MIN_PASSWORD_LENGTH}{' '}
+                characters to this Worker, then reload this page.
+              </p>
+              <p>
+                Cloudflare dashboard: Workers &amp; Pages → this Worker → Settings → Variables and
+                Secrets. Or run <code>npx wrangler secret put FOUNDER_PASSWORD</code>.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </main>
+  </body>
+</html>
