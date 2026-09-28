@@ -84,4 +84,12 @@ export const agentTeamApi = (apiToken: string) => ({
     jurisdiction?: string;
     description?: string;
   }) => send(apiToken, "POST", "/api/entities", body),
+  dispatchCloudRun: (body: {
+    platform: string;
+    prompt: string;
+    title?: string;
+    profile?: string;
+    origin?: string;
+  }) => send(apiToken, "POST", "/api/agents/cloud", body),
+  getCloudRun: (id: number) => send(apiToken, "GET", `/api/agents/cloud/${id}`),
 });

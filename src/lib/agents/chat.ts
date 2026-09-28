@@ -5,6 +5,8 @@ import { ConversationService } from "../services/conversation";
 import { DumpService } from "../services/dump";
 import { callAgent, DEFAULT_MODEL } from "./llm";
 import { launchMission } from "./orchestrator";
+import { dispatchCloudRun } from "./cloud";
+import { manusConfigured, ManusError } from "./manus";
 import {
   agentInstructions,
   chatPrompt,
@@ -50,8 +52,33 @@ export async function chatWithHermes(env: AgentTeamEnv, message: string) {
 
   let mission = null;
   let entry = null;
+  let cloud = null;
+  let reply = output.reply;
 
-  if (output.action === "start_mission" && output.mission_directive.trim()) {
+  if (output.action === "delegate_manus" && output.mission_directive.trim()) {
+    if (manusConfigured(env)) {
+      try {
+        const run = await dispatchCloudRun(env, {
+          platform: "manus",
+          prompt: output.mission_directive.trim(),
+          title: output.mission_title.trim() || undefined,
+          origin: "hermes",
+        });
+        cloud = { id: run.id, title: run.title, url: run.external_url };
+        if (run.external_url) {
+          reply += `\n\nManus is on it: ${run.external_url}`;
+        }
+      } catch (error) {
+        // Don't lose Hermes's reply if Manus is unavailable; tell the Founder.
+        reply += `\n\n(I couldn't reach Manus just now: ${
+          error instanceof ManusError ? error.message : "unexpected error"
+        })`;
+      }
+    } else {
+      reply +=
+        "\n\n(Manus isn't connected yet — set the MANUS_API_KEY secret and I'll be able to send it there.)";
+    }
+  } else if (output.action === "start_mission" && output.mission_directive.trim()) {
     const entityId = entities.some((entity) => entity.id === output.mission_entity_id)
       ? output.mission_entity_id
       : null;
@@ -78,15 +105,16 @@ export async function chatWithHermes(env: AgentTeamEnv, message: string) {
     conversation.insertStatement({ role: "founder", content: message }),
     conversation.insertStatement({
       role: "hermes",
-      content: output.reply,
+      content: reply,
       mission_id: mission?.id,
       knowledge_id: entry?.id,
     }),
   ]);
 
   return {
-    reply: output.reply,
+    reply,
     mission: mission ? { id: mission.id, title: mission.title, status: mission.status } : null,
     memory: entry ? { id: entry.id, title: entry.title } : null,
+    cloud,
   };
 }

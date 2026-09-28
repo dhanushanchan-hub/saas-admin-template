@@ -2,8 +2,10 @@ import { cn } from "@/lib/utils";
 
 const groups = [
   [
+    { href: "/admin/junction", label: "Junction" },
     { href: "/admin/hermes", label: "Hermes" },
     { href: "/admin/command", label: "Command Center" },
+    { href: "/admin/cloud", label: "Cloud" },
     { href: "/admin/dump", label: "Dump" },
     { href: "/admin/missions", label: "Missions" },
     { href: "/admin/agents", label: "Agents" },

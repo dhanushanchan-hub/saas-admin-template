@@ -139,6 +139,44 @@ export type Activity = {
   created_at: string;
 };
 
+// TIVA Cloud: the outside agent platforms the Founder can hand work to.
+// "manus" is driven by TIVA HQ through Manus's API; the rest run on their own
+// hosted or desktop surfaces and connect back through the tiva-agent-team skill.
+export type CloudPlatform =
+  | "manus"
+  | "claude-code"
+  | "codex"
+  | "opencode"
+  | "openclaw"
+  | "hermes"
+  | "gemini";
+
+export type CloudRunStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "stopped"
+  | "unknown";
+
+export type CloudRunOrigin = "founder" | "hermes" | "api";
+
+export type CloudRun = {
+  id: number;
+  platform: CloudPlatform;
+  title: string;
+  prompt: string;
+  profile: string | null;
+  status: CloudRunStatus;
+  external_id: string | null;
+  external_url: string | null;
+  detail: string | null;
+  origin: CloudRunOrigin;
+  mission_id: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // The subset of the Worker environment the agent team uses. Kept separate from
 // the generated `Env` so the workflow and scheduler can be bundled without
 // Astro's types.
@@ -152,6 +190,12 @@ export type AgentTeamEnv = {
   ANTHROPIC_BASE_URL?: string;
   AGENT_MODEL?: string;
   COMPANY_NAME?: string;
+  // TIVA Cloud (Manus bridge). MANUS_API_KEY is a secret; the rest are optional
+  // overrides for accounts on a different Manus endpoint, header or profile.
+  MANUS_API_KEY?: string;
+  MANUS_BASE_URL?: string;
+  MANUS_API_KEY_HEADER?: string;
+  MANUS_AGENT_PROFILE?: string;
 };
 
 // D1's CURRENT_TIMESTAMP is "YYYY-MM-DD HH:MM:SS" in UTC with no zone marker.

@@ -481,6 +481,47 @@ const apiEndpoints: APIEndpoint[] = [
       "Run a 24/7 routine now. GET /api/routines lists them; PATCH /api/routines/:id changes the schedule or pauses one.",
     responses: [{ name: "Accepted", example: { mission: { id: 7, origin: "routine" } } }],
   },
+  {
+    method: "POST",
+    path: "/api/agents/cloud",
+    description:
+      "TIVA Cloud: hand a task to an outside agent platform. platform 'manus' starts a real Manus task; the others (claude-code, codex, opencode, openclaw, hermes, gemini) record a tracked handoff. GET lists recent runs.",
+    requestBody: {
+      example: {
+        platform: "manus",
+        prompt: "Research our top 3 competitors and summarise their pricing.",
+        profile: "manus-1.6",
+      },
+      description:
+        "platform and prompt are required. title and profile (Manus only) are optional.",
+    },
+    responses: [
+      {
+        name: "Accepted",
+        example: {
+          run: {
+            id: 4,
+            platform: "manus",
+            status: "running",
+            external_url: "https://manus.ai/app/…",
+          },
+        },
+        description: "Status 202. Returns 502 if Manus can't be reached.",
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/agents/cloud/:id",
+    description:
+      "One cloud run. For a Manus run this refreshes its status from Manus before returning it.",
+    responses: [
+      {
+        name: "Response",
+        example: { run: { id: 4, platform: "manus", status: "completed", external_url: "https://manus.ai/app/…" } },
+      },
+    ],
+  },
 ];
 
 export { apiEndpoints };

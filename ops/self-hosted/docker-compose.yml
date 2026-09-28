@@ -1,0 +1,170 @@
+# TIVA self-hosted tools — one stack for the Founder's workstation or VM.
+#
+# These are full server apps with their own databases, so they run here on a
+# Docker host (the Azure/Oracle workstation), NOT on Cloudflare Workers. Bring
+# them up with:  docker compose up -d
+#
+# Each app is also published on a plain host port, so over Tailscale you can
+# reach it at http://<workstation>:<port> with no DNS. For clean hostnames and
+# HTTPS, run the optional Caddy proxy:  docker compose --profile proxy up -d
+#
+# Copy .env.example to .env and set the secrets before the first start.
+name: tiva-tools
+
+x-restart: &restart
+  restart: unless-stopped
+
+networks:
+  tiva:
+
+volumes:
+  postgres_data:
+  redis_data:
+  memos_data:
+  nocodb_data:
+  pocketbase_data:
+  appsmith_data:
+  docmost_data:
+  caddy_data:
+  caddy_config:
+
+services:
+  # ---- shared data services ------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    <<: *restart
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tiva}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: tiva
+    # Creates the per-app databases (docmost, hoppscotch) on first start.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks: [tiva]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tiva}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    <<: *restart
+    command: ["redis-server", "--save", "60", "1"]
+    volumes:
+      - redis_data:/data
+    networks: [tiva]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- 1. Excalidraw — whiteboard -----------------------------------------
+  excalidraw:
+    image: excalidraw/excalidraw:latest
+    <<: *restart
+    ports: ["${PORT_EXCALIDRAW:-5001}:80"]
+    networks: [tiva]
+
+  # ---- 2. Memos — notes ----------------------------------------------------
+  memos:
+    image: neosmemo/memos:stable
+    <<: *restart
+    volumes:
+      - memos_data:/var/opt/memos
+    ports: ["${PORT_MEMOS:-5002}:5230"]
+    networks: [tiva]
+
+  # ---- 3. NocoDB — Airtable-style database (SQLite volume) -----------------
+  nocodb:
+    image: nocodb/nocodb:latest
+    <<: *restart
+    environment:
+      NC_AUTH_JWT_SECRET: ${NOCODB_JWT_SECRET:?set NOCODB_JWT_SECRET in .env}
+    volumes:
+      - nocodb_data:/usr/app/data
+    ports: ["${PORT_NOCODB:-5003}:8080"]
+    networks: [tiva]
+
+  # ---- 4. PocketBase — instant backend ------------------------------------
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    <<: *restart
+    volumes:
+      - pocketbase_data:/pb_data
+    ports: ["${PORT_POCKETBASE:-5004}:8090"]
+    networks: [tiva]
+
+  # ---- 5. Appsmith — internal-tools builder (self-contained) --------------
+  appsmith:
+    image: appsmith/appsmith-ce:latest
+    <<: *restart
+    volumes:
+      - appsmith_data:/appsmith-stacks
+    ports: ["${PORT_APPSMITH:-5005}:80"]
+    networks: [tiva]
+
+  # ---- 6. Hoppscotch — API client (needs the shared Postgres) -------------
+  # First-run note: Hoppscotch needs its schema migrated and several secrets.
+  # The core env is here; see the README and upstream docs for the full list.
+  hoppscotch:
+    image: hoppscotch/hoppscotch:latest
+    <<: *restart
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tiva}:${POSTGRES_PASSWORD}@postgres:5432/hoppscotch
+      JWT_SECRET: ${HOPPSCOTCH_JWT_SECRET:?set HOPPSCOTCH_JWT_SECRET in .env}
+      SESSION_SECRET: ${HOPPSCOTCH_SESSION_SECRET:?set HOPPSCOTCH_SESSION_SECRET in .env}
+      DATA_ENCRYPTION_KEY: ${HOPPSCOTCH_ENCRYPTION_KEY:?set HOPPSCOTCH_ENCRYPTION_KEY (32 chars) in .env}
+      WHITELISTED_ORIGINS: ${HOPPSCOTCH_ORIGINS:-http://localhost:5006,http://localhost:5007,http://localhost:5008}
+      VITE_ALLOWED_AUTH_PROVIDERS: EMAIL
+      ENABLE_SUBPATH_BASED_ACCESS: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${PORT_HOPPSCOTCH_APP:-5006}:3000"
+      - "${PORT_HOPPSCOTCH_ADMIN:-5007}:3100"
+      - "${PORT_HOPPSCOTCH_API:-5008}:3170"
+    networks: [tiva]
+
+  # ---- 7. Docmost — team wiki / docs (Postgres + Redis) -------------------
+  docmost:
+    image: docmost/docmost:latest
+    <<: *restart
+    environment:
+      APP_URL: ${DOCMOST_APP_URL:-http://localhost:5009}
+      APP_SECRET: ${DOCMOST_APP_SECRET:?set DOCMOST_APP_SECRET (openssl rand -hex 32) in .env}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tiva}:${POSTGRES_PASSWORD}@postgres:5432/docmost?schema=public
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - docmost_data:/app/data/storage
+    ports: ["${PORT_DOCMOST:-5009}:3000"]
+    networks: [tiva]
+
+  # ---- 8. DeerFlow — deep-research SuperAgent -----------------------------
+  # DeerFlow ships its own multi-service compose and needs LLM keys, so it is
+  # brought up from its own repo rather than pinned here (see the README).
+  # Once it's running on :2026, the optional Caddy proxy can route to it.
+
+  # ---- optional: Caddy reverse proxy (profile "proxy") --------------------
+  caddy:
+    image: caddy:2-alpine
+    <<: *restart
+    profiles: ["proxy"]
+    environment:
+      TIVA_DOMAIN: ${TIVA_DOMAIN:-tools.localhost}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "${PORT_HTTP:-80}:80"
+      - "${PORT_HTTPS:-443}:443"
+    networks: [tiva]

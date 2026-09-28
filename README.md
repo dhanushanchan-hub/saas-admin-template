@@ -14,6 +14,26 @@ This fork adds TIVA HQ: an executive team of Claude-powered agents led by **Herm
 
 See [docs/AGENT_TEAM.md](docs/AGENT_TEAM.md) for how it works and how to set it up. See [integrations/openclaw-windows](integrations/openclaw-windows/README.md) to connect OpenClaw on a Windows desktop.
 
+## TIVA Cloud: one junction for every agent and tool
+
+TIVA Cloud connects the team to outside agent platforms and gives one master view
+of everything, all inside TIVA HQ on Cloudflare:
+
+- **Master junction** (`/admin/junction`) — every agent, connector, cloud account
+  and self-hosted tool in one place, each with a live status.
+- **Cloud agents** (`/admin/cloud`) — send tasks to **Manus** over its API and
+  watch them; copy-paste connect steps for **Claude Code, Codex, OpenClaw, Hermes
+  Agent, Gemini** (and Kimi) through the `tiva-agent-team` skill. Hermes can
+  delegate to Manus on request.
+- **MCP server** ([integrations/mcp](integrations/mcp/README.md)) — the team as
+  tools in Claude Desktop, Claude Code or Cursor.
+- **Self-hosted tools** ([ops/self-hosted](ops/self-hosted/README.md)) — Excalidraw,
+  Memos, NocoDB, PocketBase, Appsmith, Hoppscotch, Docmost and DeerFlow, one
+  `docker compose up` on the Founder's workstation.
+
+Start here: [docs/DESKTOP.md](docs/DESKTOP.md) wires the whole desktop; details in
+[docs/TIVA_CLOUD.md](docs/TIVA_CLOUD.md).
+
 ## Features
 
 - 🎨 Modern UI built with Astro and Shadcn UI
