@@ -1,0 +1,113 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { AddKnowledgeButton, DeleteKnowledgeButton } from '@/components/agents/knowledge-controls';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { AgentService } from '@/lib/services/agent';
+import { EntityService } from '@/lib/services/entity';
+import { KnowledgeService } from '@/lib/services/knowledge';
+import { formatTime } from '@/lib/agents/format';
+import type { KnowledgeEntry } from '@/lib/agents/types';
+
+const { API_TOKEN, DB } = Astro.locals.runtime.env;
+
+const [knowledge, agents, entities] = await Promise.all([
+  new KnowledgeService(DB).getAll(),
+  new AgentService(DB).getAll(),
+  new EntityService(DB).getTree(),
+]);
+
+const founder = knowledge.filter((entry) => entry.source === 'founder');
+const learnings = knowledge.filter((entry) => entry.source === 'agent');
+const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]));
+const entityNames = new Map(entities.map((entity) => [entity.id, entity.name]));
+const departments = [...new Set(agents.map((agent) => agent.department))];
+
+const audience = (entry: KnowledgeEntry) => {
+  if (entry.scope === 'global') return 'Every agent';
+  if (entry.scope === 'department') return `${entry.scope_ref} department`;
+  if (entry.scope === 'entity') return `Missions for ${entityNames.get(entry.scope_ref ?? '') ?? entry.scope_ref}`;
+  return agentNames.get(entry.scope_ref ?? '') ?? entry.scope_ref;
+};
+
+const suggestions = [
+  'Company overview: what each entity does, who it serves, and how it makes money',
+  'Your goals for this quarter and year, with the numbers that matter',
+  'How you make decisions: risk appetite, budgets agents can plan around, non-negotiables',
+  'Brand voice and positioning for each brand',
+  'Tech stack, key systems and vendors',
+  'Key people, partners and customers the team should know about',
+];
+---
+
+<Layout title="Knowledge & Training">
+  <div slot="actions">
+    <AddKnowledgeButton
+      client:only="react"
+      apiToken={API_TOKEN}
+      departments={departments.map((department) => ({ value: department, label: department }))}
+      entities={entities.map((entity) => ({ value: entity.id, label: `${'\u00a0\u00a0'.repeat(entity.depth)}${entity.name}` }))}
+      agents={agents.map((agent) => ({ value: agent.id, label: `${agent.name}, ${agent.title}` }))}
+    />
+  </div>
+
+  <p class="max-w-3xl text-muted-foreground">
+    This is how you train the team. Every entry is added to the context of each agent it applies to, on
+    every mission. Agents also record what they learn, so lessons from one mission carry into the next.
+  </p>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <Card>
+      <CardHeader>
+        <CardTitle>From you ({founder.length})</CardTitle>
+        <CardDescription>Standing instructions. These override anything the team has learned.</CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        {founder.map((entry) => (
+          <div class="rounded-lg border p-4">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="font-medium">{entry.title}</p>
+                <p class="text-xs text-muted-foreground">{audience(entry)} · {formatTime(entry.created_at)}</p>
+              </div>
+              <DeleteKnowledgeButton client:only="react" apiToken={API_TOKEN} id={entry.id} />
+            </div>
+            <p class="mt-2 whitespace-pre-wrap text-sm">{entry.content}</p>
+          </div>
+        ))}
+        <div class="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+          <p class="font-medium text-foreground">What the best-trained teams know</p>
+          <ul class="mt-2 list-disc space-y-1 pl-5">
+            {suggestions.map((suggestion) => <li>{suggestion}</li>)}
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Learned by the team ({learnings.length})</CardTitle>
+        <CardDescription>Lessons agents recorded on missions. Delete anything that's wrong.</CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        {learnings.length ? learnings.map((entry) => (
+          <div class="rounded-lg border p-4">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="font-medium">{entry.title}</p>
+                <p class="text-xs text-muted-foreground">
+                  {agentNames.get(entry.author_agent_id ?? '') ?? entry.author_agent_id} · shared with {audience(entry).toLowerCase()}
+                  {entry.mission_id && <> · <a class="underline" href={`/admin/missions/${entry.mission_id}`}>mission #{entry.mission_id}</a></>}
+                </p>
+              </div>
+              <DeleteKnowledgeButton client:only="react" apiToken={API_TOKEN} id={entry.id} />
+            </div>
+            <p class="mt-2 whitespace-pre-wrap text-sm">{entry.content}</p>
+          </div>
+        )) : (
+          <p class="text-sm text-muted-foreground">Nothing yet. Learnings appear here as the team completes missions.</p>
+        )}
+      </CardContent>
+    </Card>
+  </div>
+</Layout>

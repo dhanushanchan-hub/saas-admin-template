@@ -1,0 +1,160 @@
+---
+import { Bot, CircleCheck, Loader, MessageSquareWarning } from 'lucide-react';
+
+import Layout from '@/layouts/Layout.astro';
+import { DirectiveForm } from '@/components/agents/directive-form';
+import { MissingModelKeyCard } from '@/components/agents/missing-model-key-card';
+import { RememberForm } from '@/components/agents/remember-form';
+import { StatusBadge } from '@/components/agents/status-badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { ActivityService } from '@/lib/services/activity';
+import { AgentService } from '@/lib/services/agent';
+import { EntityService } from '@/lib/services/entity';
+import { MissionService } from '@/lib/services/mission';
+import { formatTime } from '@/lib/agents/format';
+
+const { API_TOKEN, ANTHROPIC_API_KEY, COMPANY_NAME, DB } = Astro.locals.runtime.env;
+
+const missionService = new MissionService(DB);
+const [agents, entities, stats, missions, openDecisions, activity] = await Promise.all([
+  new AgentService(DB).getAll(),
+  new EntityService(DB).getTree(),
+  missionService.getStats(),
+  missionService.getAll({ limit: 6 }),
+  missionService.getOpenDecisions(5),
+  new ActivityService(DB).getRecent(15),
+]);
+
+const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]));
+const activeAgents = agents.filter((agent) => agent.status === 'active').length;
+
+const tiles = [
+  { name: 'Agents on duty', value: `${activeAgents}/${agents.length}`, icon: Bot, href: '/admin/agents' },
+  { name: 'Missions in flight', value: stats.in_flight, icon: Loader, href: '/admin/missions' },
+  { name: 'Completed (24h)', value: stats.completed_24h, icon: CircleCheck, href: '/admin/missions?status=completed' },
+  { name: 'Decisions for you', value: openDecisions.length, icon: MessageSquareWarning, href: '#decisions' },
+];
+---
+
+<Layout title="Command Center">
+  <div class="space-y-6">
+    {!ANTHROPIC_API_KEY && <MissingModelKeyCard />}
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {tiles.map((tile) => (
+        <a href={tile.href} class="rounded-xl border bg-card text-card-foreground shadow transition-colors hover:bg-muted">
+          <div class="p-6">
+            <div class="flex items-center justify-between pb-2">
+              <div class="text-sm font-medium tracking-tight">{tile.name}</div>
+              <tile.icon className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div class="text-2xl font-bold">{tile.value}</div>
+          </div>
+        </a>
+      ))}
+    </div>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Brief Hermes</CardTitle>
+        <CardDescription>
+          Hermes, your Chief of Staff, turns each directive into a plan, assigns it to the right
+          executives at {COMPANY_NAME || 'the company'}, and sends you one brief with the decisions only you can make.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <DirectiveForm
+          client:only="react"
+          apiToken={API_TOKEN}
+          entities={entities.map(({ id, name, depth }) => ({ id, name, depth }))}
+          disabled={!ANTHROPIC_API_KEY}
+        />
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Tell Hermes to remember</CardTitle>
+        <CardDescription>
+          Hermes keeps everything you share here in the team's long-term memory, and every agent works from it.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <RememberForm client:only="react" apiToken={API_TOKEN} />
+      </CardContent>
+    </Card>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <Card id="decisions">
+        <CardHeader>
+          <CardTitle>Decisions waiting on you</CardTitle>
+          <CardDescription>From the latest completed missions, each with the team's recommendation.</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          {openDecisions.length ? openDecisions.map(({ mission, decision }) => (
+            <div class="rounded-lg border p-4">
+              <p class="font-medium">{decision.question}</p>
+              <p class="mt-1 text-sm text-muted-foreground">
+                <span class="font-medium text-foreground">Recommendation:</span> {decision.recommendation}
+              </p>
+              <p class="mt-2 text-xs text-muted-foreground">
+                {decision.owner} · <a class="underline" href={`/admin/missions/${mission.id}`}>#{mission.id} {mission.title}</a>
+              </p>
+            </div>
+          )) : (
+            <p class="text-sm text-muted-foreground">Nothing is waiting on you.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Team activity</CardTitle>
+          <CardDescription>What the agents have been doing, newest first.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {activity.length ? (
+            <ol class="space-y-3">
+              {activity.map((entry) => (
+                <li class="text-sm">
+                  <p>
+                    {entry.mission_id ? <a class="hover:underline" href={`/admin/missions/${entry.mission_id}`}>{entry.message}</a> : entry.message}
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    {entry.agent_id ? `${agentNames.get(entry.agent_id) ?? entry.agent_id} · ` : ''}{formatTime(entry.created_at)}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p class="text-sm text-muted-foreground">No activity yet. Send Hermes your first directive.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Recent missions</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {missions.length ? (
+          <ul class="divide-y">
+            {missions.map((mission) => (
+              <li class="flex flex-wrap items-center justify-between gap-2 py-3">
+                <a class="font-medium hover:underline" href={`/admin/missions/${mission.id}`}>#{mission.id} {mission.title}</a>
+                <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{formatTime(mission.created_at)}</span>
+                  <StatusBadge status={mission.status} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="text-sm text-muted-foreground">No missions yet.</p>
+        )}
+      </CardContent>
+    </Card>
+  </div>
+</Layout>

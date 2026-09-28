@@ -1,0 +1,73 @@
+---
+import { Plus } from 'lucide-react';
+
+import Layout from '@/layouts/Layout.astro';
+import { StatusBadge } from '@/components/agents/status-badge';
+import { buttonVariants } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+import { EntityService } from '@/lib/services/entity';
+import { MissionService } from '@/lib/services/mission';
+import { formatTime } from '@/lib/agents/format';
+import type { MissionStatus } from '@/lib/agents/types';
+
+const { DB } = Astro.locals.runtime.env;
+
+const statuses: MissionStatus[] = ['queued', 'planning', 'executing', 'synthesizing', 'completed', 'failed'];
+const requested = Astro.url.searchParams.get('status') as MissionStatus | null;
+const status = requested && statuses.includes(requested) ? requested : undefined;
+
+const [missions, entities] = await Promise.all([
+  new MissionService(DB).getAll({ limit: 200, status }),
+  new EntityService(DB).getAll(),
+]);
+const entityNames = new Map(entities.map((entity) => [entity.id, entity.name]));
+---
+
+<Layout title="Missions">
+  <div slot="actions">
+    <a class={buttonVariants()} href="/admin/command"><Plus className="mr-2 h-4 w-4" /> New directive</a>
+  </div>
+
+  <div class="flex flex-wrap gap-2 text-sm">
+    <a class={!status ? 'font-semibold underline' : 'text-muted-foreground hover:underline'} href="/admin/missions">All</a>
+    {statuses.map((option) => (
+      <a class={status === option ? 'font-semibold capitalize underline' : 'capitalize text-muted-foreground hover:underline'} href={`/admin/missions?status=${option}`}>{option}</a>
+    ))}
+  </div>
+
+  {missions.length ? (
+    <div class="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>#</TableHead>
+            <TableHead>Mission</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Priority</TableHead>
+            <TableHead>Entity</TableHead>
+            <TableHead>Origin</TableHead>
+            <TableHead>Created</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {missions.map((mission) => (
+            <TableRow>
+              <TableCell>{mission.id}</TableCell>
+              <TableCell><a class="text-primary underline" href={`/admin/missions/${mission.id}`}>{mission.title}</a></TableCell>
+              <TableCell><StatusBadge status={mission.status} /></TableCell>
+              <TableCell><StatusBadge status={mission.priority} /></TableCell>
+              <TableCell>{mission.entity_id ? entityNames.get(mission.entity_id) ?? mission.entity_id : 'Whole group'}</TableCell>
+              <TableCell class="capitalize">{mission.origin}</TableCell>
+              <TableCell>{formatTime(mission.created_at)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  ) : (
+    <p class="font-medium text-muted-foreground">
+      No missions{status ? ` with status "${status}"` : ''} yet. Give Hermes a directive from the <a class="underline" href="/admin/command">Command Center</a>.
+    </p>
+  )}
+</Layout>

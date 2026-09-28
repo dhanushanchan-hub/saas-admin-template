@@ -1,0 +1,58 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { MissingModelKeyCard } from '@/components/agents/missing-model-key-card';
+import { RoutineControls } from '@/components/agents/routine-controls';
+import { StatusBadge } from '@/components/agents/status-badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { AgentService } from '@/lib/services/agent';
+import { RoutineService } from '@/lib/services/routine';
+import { describeSchedule, formatTime } from '@/lib/agents/format';
+
+const { API_TOKEN, ANTHROPIC_API_KEY, DB } = Astro.locals.runtime.env;
+
+const [routines, agents] = await Promise.all([
+  new RoutineService(DB).getAll(),
+  new AgentService(DB).getAll(),
+]);
+const agentsById = new Map(agents.map((agent) => [agent.id, agent]));
+---
+
+<Layout title="24/7 Routines">
+  {!ANTHROPIC_API_KEY && <MissingModelKeyCard />}
+
+  <p class="max-w-3xl text-muted-foreground">
+    The team works around the clock. An hourly cron trigger checks these routines and launches a
+    mission for each one that's due. Each mission is planned by Hermes and ends in a brief, like any
+    directive you give. All times are UTC.
+  </p>
+
+  <div class="grid gap-4 lg:grid-cols-2">
+    {routines.map((routine) => {
+      const agent = agentsById.get(routine.agent_id);
+      return (
+        <Card>
+          <CardHeader>
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <CardTitle>{routine.name}</CardTitle>
+                <CardDescription>
+                  Led by <a class="underline" href={`/admin/agents/${routine.agent_id}`}>{agent?.name ?? routine.agent_id}</a> · {describeSchedule(routine)} · Last run {routine.last_run_at ? formatTime(routine.last_run_at) : 'never'}
+                </CardDescription>
+              </div>
+              <StatusBadge status={routine.enabled ? 'active' : 'paused'} />
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <p class="text-sm">{routine.directive}</p>
+            <RoutineControls
+              client:only="react"
+              apiToken={API_TOKEN}
+              routine={{ id: routine.id, cadence: routine.cadence, hour_utc: routine.hour_utc, weekday: routine.weekday, enabled: routine.enabled }}
+            />
+          </CardContent>
+        </Card>
+      );
+    })}
+  </div>
+</Layout>

@@ -8,6 +8,12 @@
 
 A complete admin dashboard template built with Astro, Shadcn UI, and Cloudflare's developer stack. Quickly deploy a fully functional admin interface with customer and subscription management capabilities.
 
+## TIVA autonomous agent team
+
+This fork adds TIVA HQ: an executive team of Claude-powered agents led by **Hermes**, the Founder's Chief of Staff and 24/7 assistant. It includes a world-class CTO, a CFO, General Counsel, a COO, a CMO, a CRO and more, 14 agents in all. Give a directive from the Command Center (`/admin/command`), the API or OpenClaw. Hermes plans it, the executives work in parallel, and you get one brief with the decisions only you can make. Routines run around the clock, and every agent learns from the Founder's knowledge base and from the team's past work.
+
+See [docs/AGENT_TEAM.md](docs/AGENT_TEAM.md) for how it works and how to set it up. See [integrations/openclaw-windows](integrations/openclaw-windows/README.md) to connect OpenClaw on a Windows desktop.
+
 ## Features
 
 - 🎨 Modern UI built with Astro and Shadcn UI
@@ -95,10 +101,11 @@ npm run deploy
 $ npm run db:migrate:remote
 ```
 
-8. Set your production API token:
+8. Set your production API token and Anthropic API key (the agent team needs the key):
 
 ```bash
 npx wrangler secret put API_TOKEN
+npx wrangler secret put ANTHROPIC_API_KEY
 ```
 
 ## Usage

@@ -6,7 +6,8 @@ import ApiTokenMissingCard from '@/components/admin/api-token-missing-card';
 
 const currentPath = Astro.url.pathname;
 const title = Astro.props.title || 'SaaS Admin Template';
-const { API_TOKEN } = Astro.locals.runtime.env;
+const { API_TOKEN, COMPANY_NAME } = Astro.locals.runtime.env;
+const brand = COMPANY_NAME ? `${COMPANY_NAME} HQ` : 'SaaS Admin Template';
 const apiTokenSet = API_TOKEN && API_TOKEN !== '';
 ---
 
@@ -36,15 +37,15 @@ const apiTokenSet = API_TOKEN && API_TOKEN !== '';
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>{title ? `${title} - SaaS Admin Template` : 'SaaS Admin Template'}</title>
+    <title>{title ? `${title} - ${brand}` : brand}</title>
   </head>
   <body>
-    <Header currentPath={currentPath} />
+    <Header currentPath={currentPath} brand={brand} />
     <div class="flex-1 space-y-4 p-8 pt-6">
       <div class="mb-4">
         {!apiTokenSet && <ApiTokenMissingCard />}
       </div>
-      <div class="flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-4">
         <h2 class="text-3xl font-bold tracking-tight">{title}</h2>
         <slot name="actions" />
       </div>

@@ -365,6 +365,82 @@ const apiEndpoints: APIEndpoint[] = [
       },
     ],
   },
+  {
+    method: "POST",
+    path: "/api/missions",
+    description:
+      "Give the agent team a directive. Hermes plans it, the executives work on it in the background, and the mission ends with a brief. Poll GET /api/missions/:id for progress.",
+    requestBody: {
+      example: {
+        directive: "Plan the MVP launch of TIVA Master ID, with budget and delivery plan.",
+        entity_id: "tiva-family-holding",
+        priority: "high",
+      },
+      description:
+        "directive is required. title, entity_id, priority (low | normal | high | critical) and origin (founder | api) are optional.",
+    },
+    responses: [
+      {
+        name: "Accepted",
+        example: { mission: { id: 1, status: "queued", title: "Plan the MVP launch of TIVA Master ID..." } },
+        description: "Status 202. Returns 503 if ANTHROPIC_API_KEY is not configured.",
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/missions/:id",
+    description: "A mission with its plan, every assignment's deliverable, the brief and the decisions for the Founder.",
+    responses: [
+      {
+        name: "Response",
+        example: {
+          mission: { id: 1, status: "completed", brief: "**Outcome:** ...", decisions: [{ question: "...", recommendation: "...", owner: "Ledger" }] },
+          tasks: [{ agent_id: "atlas", title: "Platform architecture", status: "completed", output: "..." }],
+        },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/briefing",
+    description: "Snapshot for the Founder's assistant: missions in flight, the latest briefs and the decisions waiting on the Founder.",
+    responses: [
+      {
+        name: "Response",
+        example: { stats: { in_flight: 1, completed_24h: 3 }, in_flight: [], latest_briefs: [], decisions: [] },
+      },
+    ],
+  },
+  {
+    method: "POST",
+    path: "/api/knowledge",
+    description: "Teach the team something. Every agent the entry applies to sees it on every mission.",
+    requestBody: {
+      example: { title: "Q4 goal", content: "Launch Master ID by December.", scope: "global" },
+      description: "scope is global | department | entity | agent; scope_ref names the department, entity or agent.",
+    },
+    responses: [{ name: "Created", example: { entry: { id: 3, title: "Q4 goal" } } }],
+  },
+  {
+    method: "GET",
+    path: "/api/agents",
+    description: "The agent team. PATCH /api/agents/:id updates an agent's status, mission, charter or model.",
+    responses: [{ name: "Response", example: { agents: [{ id: "atlas", name: "Atlas", title: "Chief Technology Officer" }] } }],
+  },
+  {
+    method: "GET",
+    path: "/api/entities",
+    description: "The group structure, parent first. POST creates an entity (name, kind, parent_id, category, region).",
+    responses: [{ name: "Response", example: { entities: [{ id: "tiva-family-holding", name: "TIVA Family Holding Company", depth: 0 }] } }],
+  },
+  {
+    method: "POST",
+    path: "/api/routines/:id/run",
+    description:
+      "Run a 24/7 routine now. GET /api/routines lists them; PATCH /api/routines/:id changes the schedule or pauses one.",
+    responses: [{ name: "Accepted", example: { mission: { id: 7, origin: "routine" } } }],
+  },
 ];
 
 export { apiEndpoints };
