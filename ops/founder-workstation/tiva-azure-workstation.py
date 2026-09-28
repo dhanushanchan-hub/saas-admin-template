@@ -13,7 +13,9 @@ already exists, it only finishes its setup.
 For a helper running it without a keyboard: TIVA_ADMIN_PASSWORD and
 TIVA_TAILSCALE_KEY in the environment replace the two hidden prompts.
 """
+import base64
 import getpass
+import gzip
 import json
 import os
 import subprocess
@@ -50,13 +52,34 @@ IMAGES = {
 # workstation, applies the computer-wide settings, and leaves a
 # "TIVA Desktop Setup" icon on the desktop for the rest.
 DESKTOP_SETUP = "__DESKTOP_SETUP__"
+if DESKTOP_SETUP == "__DESKTOP" + "_SETUP__":
+    # Run straight from the repo: embed the desktop script sitting next to this file.
+    _setup = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tiva-desktop-setup.ps1")
+    if os.path.exists(_setup):
+        with open(_setup, "rb") as f:
+            DESKTOP_SETUP = base64.b64encode(gzip.compress(f.read(), mtime=0)).decode()
+
+
+def find_az():
+    """How to run the Azure CLI. On Windows, call its own Python directly:
+    going through az.cmd lets cmd.exe mangle quotes in the PowerShell we send."""
+    if os.name == "nt":
+        for base in (os.environ.get("ProgramFiles", r"C:\Program Files"),
+                     os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")):
+            python = os.path.join(base, "Microsoft SDKs", "Azure", "CLI2", "python.exe")
+            if os.path.exists(python):
+                return [python, "-IBm", "azure.cli"]
+    return ["az"]
+
+
+AZ = find_az()
 
 
 def az(*args, capture=True):
     """Runs an Azure CLI command. With capture, returns parsed JSON or None."""
     if not capture:
-        return subprocess.run(["az", *args, "--only-show-errors"]).returncode == 0
-    result = subprocess.run(["az", *args, "-o", "json", "--only-show-errors"],
+        return subprocess.run([*AZ, *args, "--only-show-errors"]).returncode == 0
+    result = subprocess.run([*AZ, *args, "-o", "json", "--only-show-errors"],
                             capture_output=True, text=True)
     if result.returncode != 0:
         return None
@@ -126,7 +149,7 @@ def raise_limits(short):
         url = (f"https://management.azure.com/subscriptions/{sub}/providers/Microsoft.Compute/locations/{REGION}"
                f"/providers/Microsoft.Quota/quotas/{name}?api-version=2023-02-01")
         body = {"properties": {"limit": {"limitObjectType": "LimitValue", "value": needed}, "name": {"value": name}}}
-        result = subprocess.run(["az", "rest", "--method", "put", "--url", url, "--body", json.dumps(body),
+        result = subprocess.run([*AZ, "rest", "--method", "put", "--url", url, "--body", json.dumps(body),
                                  "--only-show-errors"], capture_output=True, text=True)
         if result.returncode == 0:
             print(f"==> Asked Azure to raise {label} from {limit} to {needed}")
