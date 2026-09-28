@@ -1,5 +1,5 @@
 ---
-import { BadgeDollarSign, CalendarSync, User } from 'lucide-react';
+import { BadgeDollarSign, Bot, CalendarSync, User } from 'lucide-react';
 import Layout from '@/layouts/Layout.astro';
 import { APIDocumentation } from '@/components/admin/api-documentation';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { CustomerService } from '@/lib/services/customer';
 import { SubscriptionService } from '@/lib/services/subscription';
 import { CustomerSubscriptionService } from '@/lib/services/customer_subscription';
+import { AgentService } from '@/lib/services/agent';
 
 const { DB } = Astro.locals.runtime.env;
 
@@ -18,8 +19,15 @@ const customerSubscriptionService = new CustomerSubscriptionService(DB);
 const customers = await customerService.getAll();
 const subscriptions = await subscriptionService.getAll();
 const customerSubscriptions = await customerSubscriptionService.getAll();
+const agents = await new AgentService(DB).getActive();
 
 const data = [
+  {
+    name: 'Agents on duty',
+    value: agents.length,
+    icon: Bot,
+    href: '/admin/command'
+  },
   {
     name: 'Customers',
     value: customers.length,
@@ -42,7 +50,7 @@ const data = [
 
 <Layout title="Admin">
   <div class="space-y-8">
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-4">
       {data.map((item) => (
         item.href ? (
           <div class="rounded-xl border bg-card text-card-foreground hover:bg-muted shadow transition-colors">

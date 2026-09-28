@@ -1,0 +1,122 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DeleteDumpFileButton, DumpUploader, PasteNoteButton } from '@/components/agents/dump-controls';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+import { DumpService, MATCH_END, MATCH_START, type DumpFile } from '@/lib/services/dump';
+import { formatTime } from '@/lib/agents/format';
+
+const { API_TOKEN, DB, DUMP } = Astro.locals.runtime.env;
+
+const dump = new DumpService(DB);
+const query = Astro.url.searchParams.get('q')?.trim() ?? '';
+const [files, stats, results] = await Promise.all([
+  dump.list({ limit: 200 }),
+  dump.stats(),
+  query ? dump.search(query, 30) : Promise.resolve([]),
+]);
+
+const size = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+const statusText: Record<DumpFile['status'], string> = {
+  ready: 'Searchable',
+  stored: 'Stored only',
+  failed: 'Reading failed',
+};
+
+// Splits a search excerpt into plain and highlighted parts.
+const highlight = (excerpt: string) =>
+  excerpt.split(new RegExp(`(${MATCH_START}[^${MATCH_END}]*${MATCH_END})`)).map((part) => ({
+    text: part.replace(MATCH_START, '').replace(MATCH_END, ''),
+    match: part.startsWith(MATCH_START),
+  }));
+---
+
+<Layout title="Dump">
+  <div slot="actions">
+    <PasteNoteButton client:only="react" apiToken={API_TOKEN} />
+  </div>
+
+  <p class="max-w-3xl text-muted-foreground">
+    Drop anything here: documents, spreadsheets, screenshots, photos, voice notes, chat exports, raw
+    ideas. TIVA HQ keeps the original and reads the text out of it. Hermes and every agent search the dump
+    before they work, so they plan with what you've shared.
+  </p>
+
+  {!DUMP && (
+    <p class="rounded-md border border-amber-500 p-4 text-sm">
+      File storage isn't connected. Add an R2 bucket binding named <code>DUMP</code> to this Worker to upload
+      files. You can still paste text.
+    </p>
+  )}
+
+  <p class="text-sm">
+    <strong>{stats.files.toLocaleString('en-US')}</strong> files ·
+    <strong>{stats.ready.toLocaleString('en-US')}</strong> searchable ·
+    <strong>{stats.chars.toLocaleString('en-US')}</strong> characters of text
+  </p>
+
+  {DUMP && <DumpUploader client:only="react" apiToken={API_TOKEN} />}
+
+  <form method="get" class="flex max-w-2xl gap-2">
+    <Input name="q" value={query} placeholder="Search everything you've dumped" aria-label="Search the dump" />
+    <Button type="submit">Search</Button>
+  </form>
+
+  {query && (
+    <section class="space-y-3">
+      <h3 class="text-lg font-semibold">
+        {results.length ? `Matches for "${query}"` : `Nothing matches "${query}" yet.`}
+      </h3>
+      {results.map((result) => (
+        <div class="rounded-md border p-4">
+          <a class="font-medium text-primary underline" href={`/admin/dump/${result.file_id}`}>{result.name}</a>
+          <p class="mt-1 text-sm text-muted-foreground">
+            {highlight(result.excerpt).map((part) =>
+              part.match ? <mark class="bg-yellow-200 text-foreground dark:bg-yellow-700">{part.text}</mark> : part.text,
+            )}
+          </p>
+        </div>
+      ))}
+    </section>
+  )}
+
+  {files.length ? (
+    <div class="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Kind</TableHead>
+            <TableHead>Size</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Added</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {files.map((file) => (
+            <TableRow>
+              <TableCell class="max-w-md truncate">
+                <a class="text-primary underline" href={`/admin/dump/${file.id}`}>{file.name}</a>
+              </TableCell>
+              <TableCell class="capitalize">{file.kind}</TableCell>
+              <TableCell>{size(file.size)}</TableCell>
+              <TableCell title={file.detail ?? undefined}>
+                {statusText[file.status]}
+                {file.detail && <span class="block text-xs text-muted-foreground">{file.detail}</span>}
+              </TableCell>
+              <TableCell>{formatTime(file.created_at)}</TableCell>
+              <TableCell><DeleteDumpFileButton client:only="react" apiToken={API_TOKEN} id={file.id} /></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  ) : (
+    <p class="font-medium text-muted-foreground">Nothing in the dump yet. Drop your first files above.</p>
+  )}
+</Layout>

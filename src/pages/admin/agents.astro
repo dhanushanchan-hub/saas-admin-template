@@ -1,0 +1,67 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { StatusBadge } from '@/components/agents/status-badge';
+import { AgentService } from '@/lib/services/agent';
+import { ORCHESTRATOR_ID } from '@/lib/agents/prompts';
+import type { Agent } from '@/lib/agents/types';
+
+const { DB } = Astro.locals.runtime.env;
+const agents = await new AgentService(DB).getAll();
+
+const hermes = agents.find((agent) => agent.id === ORCHESTRATOR_ID);
+const leaders = agents.filter(
+  (agent) => agent.id !== ORCHESTRATOR_ID && !agents.some((other) => other.id === agent.reports_to),
+);
+const reportsOf = (leader: Agent) => agents.filter((agent) => agent.reports_to === leader.id);
+---
+
+<Layout title="Agent Team">
+  <p class="max-w-3xl text-muted-foreground">
+    {agents.length} agents, each with its own charter. Hermes routes every directive to the few who
+    should own it. Every agent also gets the knowledge base and the lessons its teammates record.
+  </p>
+
+  {hermes && (
+    <a href={`/admin/agents/${hermes.id}`} class="block rounded-xl border-2 border-primary/40 bg-card p-6 shadow transition-colors hover:bg-muted">
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{hermes.department}</p>
+          <h3 class="text-2xl font-bold">{hermes.name}</h3>
+          <p class="font-medium">{hermes.title}</p>
+        </div>
+        <StatusBadge status={hermes.status} />
+      </div>
+      <p class="mt-3 max-w-3xl text-sm text-muted-foreground">{hermes.mission}</p>
+    </a>
+  )}
+
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    {leaders.map((leader) => (
+      <div class="flex flex-col rounded-xl border bg-card shadow">
+        <a href={`/admin/agents/${leader.id}`} class="block flex-1 rounded-t-xl p-6 transition-colors hover:bg-muted">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{leader.department}</p>
+              <h3 class="text-lg font-semibold">{leader.name}</h3>
+              <p class="text-sm font-medium">{leader.title}</p>
+            </div>
+            <StatusBadge status={leader.status} />
+          </div>
+          <p class="mt-3 text-sm text-muted-foreground">{leader.mission}</p>
+        </a>
+        {reportsOf(leader).length > 0 && (
+          <ul class="divide-y border-t">
+            {reportsOf(leader).map((report) => (
+              <li>
+                <a href={`/admin/agents/${report.id}`} class="flex items-center justify-between gap-2 px-6 py-3 text-sm transition-colors hover:bg-muted">
+                  <span><span class="font-medium">{report.name}</span> <span class="text-muted-foreground">· {report.title}</span></span>
+                  <StatusBadge status={report.status} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    ))}
+  </div>
+</Layout>

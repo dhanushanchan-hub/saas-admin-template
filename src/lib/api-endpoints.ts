@@ -365,6 +365,122 @@ const apiEndpoints: APIEndpoint[] = [
       },
     ],
   },
+  {
+    method: "POST",
+    path: "/api/hermes/chat",
+    description:
+      "Talk to Hermes. Hermes replies, and may start a mission or save what you said to the team's memory. GET returns the conversation.",
+    requestBody: {
+      example: { message: "Have the team plan the Master ID launch" },
+    },
+    responses: [
+      {
+        name: "Response",
+        example: {
+          reply: "On it. Atlas and Ledger are planning it now.",
+          mission: { id: 12, title: "Master ID launch plan", status: "queued" },
+          memory: null,
+        },
+      },
+    ],
+  },
+  {
+    method: "POST",
+    path: "/api/missions",
+    description:
+      "Give the agent team a directive. Hermes plans it, the executives work on it in the background, and the mission ends with a brief. Poll GET /api/missions/:id for progress.",
+    requestBody: {
+      example: {
+        directive: "Plan the MVP launch of TIVA Master ID, with budget and delivery plan.",
+        entity_id: "tiva-family-holding",
+        priority: "high",
+      },
+      description:
+        "directive is required. title, entity_id, priority (low | normal | high | critical) and origin (founder | api) are optional.",
+    },
+    responses: [
+      {
+        name: "Accepted",
+        example: { mission: { id: 1, status: "queued", title: "Plan the MVP launch of TIVA Master ID..." } },
+        description: "Status 202. Returns 503 if ANTHROPIC_API_KEY is not configured.",
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/missions/:id",
+    description: "A mission with its plan, every assignment's deliverable, the brief and the decisions for the Founder.",
+    responses: [
+      {
+        name: "Response",
+        example: {
+          mission: { id: 1, status: "completed", brief: "**Outcome:** ...", decisions: [{ question: "...", recommendation: "...", owner: "Ledger" }] },
+          tasks: [{ agent_id: "atlas", title: "Platform architecture", status: "completed", output: "..." }],
+        },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/briefing",
+    description: "Snapshot for the Founder's assistant: missions in flight, the latest briefs and the decisions waiting on the Founder.",
+    responses: [
+      {
+        name: "Response",
+        example: { stats: { in_flight: 1, completed_24h: 3 }, in_flight: [], latest_briefs: [], decisions: [] },
+      },
+    ],
+  },
+  {
+    method: "POST",
+    path: "/api/knowledge",
+    description: "Teach the team something. Every agent the entry applies to sees it on every mission.",
+    requestBody: {
+      example: { title: "Q4 goal", content: "Launch Master ID by December.", scope: "global" },
+      description: "scope is global | department | entity | agent; scope_ref names the department, entity or agent.",
+    },
+    responses: [{ name: "Created", example: { entry: { id: 3, title: "Q4 goal" } } }],
+  },
+  {
+    method: "POST",
+    path: "/api/dump",
+    description:
+      "Upload one file to the dump as the raw request body. Send Content-Type: application/octet-stream, the file name in X-File-Name (URI-encoded) and its type in X-File-Type. TIVA HQ stores the original and reads its text for search.",
+    responses: [{ name: "Created", example: { file: { id: 12, name: "Q3 plan.pdf", kind: "document", status: "ready" } } }],
+  },
+  {
+    method: "POST",
+    path: "/api/dump/notes",
+    description: "Dump text straight in: ideas, plans, notes, a chat transcript.",
+    requestBody: { example: { title: "Launch ideas", content: "1. Flavoured water for gyms..." } },
+    responses: [{ name: "Created", example: { file: { id: 13, kind: "note", status: "ready" } } }],
+  },
+  {
+    method: "GET",
+    path: "/api/dump",
+    description:
+      "List the dump, or search it with ?q=. GET /api/dump/:id returns one file with its text; DELETE /api/dump/:id removes it.",
+    responses: [{ name: "Search", example: { results: [{ file_id: 12, name: "Q3 plan.pdf", excerpt: "…launch in Bengaluru…" }] } }],
+  },
+  {
+    method: "GET",
+    path: "/api/agents",
+    description: "The agent team. PATCH /api/agents/:id updates an agent's status, mission, charter or model.",
+    responses: [{ name: "Response", example: { agents: [{ id: "atlas", name: "Atlas", title: "Chief Technology Officer" }] } }],
+  },
+  {
+    method: "GET",
+    path: "/api/entities",
+    description: "The group structure, parent first. POST creates an entity (name, kind, parent_id, category, region).",
+    responses: [{ name: "Response", example: { entities: [{ id: "tiva-family-holding", name: "TIVA Family Holding Company", depth: 0 }] } }],
+  },
+  {
+    method: "POST",
+    path: "/api/routines/:id/run",
+    description:
+      "Run a 24/7 routine now. GET /api/routines lists them; PATCH /api/routines/:id changes the schedule or pauses one.",
+    responses: [{ name: "Accepted", example: { mission: { id: 7, origin: "routine" } } }],
+  },
 ];
 
 export { apiEndpoints };

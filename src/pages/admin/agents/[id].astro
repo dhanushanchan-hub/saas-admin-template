@@ -1,0 +1,98 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { AgentControls } from '@/components/agents/agent-controls';
+import { StatusBadge } from '@/components/agents/status-badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { AgentService } from '@/lib/services/agent';
+import { KnowledgeService } from '@/lib/services/knowledge';
+import { MissionService } from '@/lib/services/mission';
+import { DEFAULT_MODEL } from '@/lib/agents/llm';
+import { formatTime } from '@/lib/agents/format';
+import { ORCHESTRATOR_ID } from '@/lib/agents/prompts';
+
+const { API_TOKEN, AGENT_MODEL, DB } = Astro.locals.runtime.env;
+const { id } = Astro.params;
+
+const agentService = new AgentService(DB);
+const agent = await agentService.getById(id);
+if (!agent) return Astro.redirect('/admin/agents');
+
+const [manager, reports, tasks, knowledge] = await Promise.all([
+  agent.reports_to ? agentService.getById(agent.reports_to) : null,
+  agentService.getAll().then((all) => all.filter((other) => other.reports_to === agent.id)),
+  new MissionService(DB).getTasksByAgent(agent.id, 25),
+  new KnowledgeService(DB).getAll(),
+]);
+const learnings = knowledge.filter((entry) => entry.author_agent_id === agent.id).slice(0, 10);
+---
+
+<Layout title={`${agent.name}, ${agent.title}`}>
+  <div slot="actions">
+    <AgentControls
+      client:only="react"
+      apiToken={API_TOKEN}
+      agent={{ id: agent.id, name: agent.name, status: agent.status, mission: agent.mission, charter: agent.charter, model: agent.model }}
+      canPause={agent.id !== ORCHESTRATOR_ID}
+    />
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2 text-sm">
+    <StatusBadge status={agent.status} />
+    <span class="rounded-md border px-2 py-0.5 text-xs">{agent.department}</span>
+    <span class="rounded-md border px-2 py-0.5 text-xs capitalize">{agent.tier}</span>
+    <span class="rounded-md border px-2 py-0.5 font-mono text-xs">{agent.model || AGENT_MODEL || DEFAULT_MODEL}</span>
+    <span class="text-muted-foreground">
+      Reports to {manager ? <a class="underline" href={`/admin/agents/${manager.id}`}>{manager.name}</a> : 'the Founder'}
+      {reports.length > 0 && <> · Leads {reports.map((report, index) => <>{index > 0 && ', '}<a class="underline" href={`/admin/agents/${report.id}`}>{report.name}</a></>)}</>}
+    </span>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="space-y-6 lg:col-span-2">
+      <Card>
+        <CardHeader><CardTitle>Mission</CardTitle></CardHeader>
+        <CardContent><p>{agent.mission}</p></CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Charter</CardTitle></CardHeader>
+        <CardContent><p class="whitespace-pre-wrap text-sm leading-relaxed">{agent.charter}</p></CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Recent assignments</CardTitle></CardHeader>
+        <CardContent>
+          {tasks.length ? (
+            <ul class="divide-y">
+              {tasks.map((task) => (
+                <li class="flex flex-wrap items-center justify-between gap-2 py-3">
+                  <a class="text-sm font-medium hover:underline" href={`/admin/missions/${task.mission_id}`}>{task.title}</a>
+                  <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Mission #{task.mission_id} · {formatTime(task.created_at)}</span>
+                    <StatusBadge status={task.status} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="text-sm text-muted-foreground">No assignments yet.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+
+    <Card>
+      <CardHeader><CardTitle>What {agent.name} has learned</CardTitle></CardHeader>
+      <CardContent class="space-y-4">
+        {learnings.length ? learnings.map((entry) => (
+          <div>
+            <p class="text-sm font-medium">{entry.title}</p>
+            <p class="whitespace-pre-wrap text-sm text-muted-foreground">{entry.content}</p>
+          </div>
+        )) : (
+          <p class="text-sm text-muted-foreground">Lessons {agent.name} records during missions appear here and are shared with the team.</p>
+        )}
+        <a class="text-sm underline" href="/admin/knowledge">Open the knowledge base</a>
+      </CardContent>
+    </Card>
+  </div>
+</Layout>

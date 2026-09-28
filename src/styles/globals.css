@@ -64,3 +64,57 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Rendered agent output (see src/lib/agents/markdown.ts). */
+@layer components {
+  .agent-prose {
+    @apply text-sm leading-relaxed text-foreground;
+  }
+  .agent-prose > * + * {
+    @apply mt-3;
+  }
+  .agent-prose h1 {
+    @apply text-xl font-bold tracking-tight mt-6;
+  }
+  .agent-prose h2 {
+    @apply text-lg font-semibold tracking-tight mt-6;
+  }
+  .agent-prose h3,
+  .agent-prose h4 {
+    @apply text-base font-semibold mt-4;
+  }
+  .agent-prose ul {
+    @apply list-disc pl-6 space-y-1;
+  }
+  .agent-prose ol {
+    @apply list-decimal pl-6 space-y-1;
+  }
+  .agent-prose a {
+    @apply text-primary underline underline-offset-2;
+  }
+  .agent-prose code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.85em];
+  }
+  .agent-prose pre {
+    @apply overflow-x-auto rounded-md bg-muted p-3;
+  }
+  .agent-prose pre code {
+    @apply bg-transparent p-0;
+  }
+  .agent-prose blockquote {
+    @apply border-l-2 pl-4 text-muted-foreground;
+  }
+  .agent-prose table {
+    @apply block w-full overflow-x-auto border-collapse text-left;
+  }
+  .agent-prose th,
+  .agent-prose td {
+    @apply border px-3 py-1.5 align-top;
+  }
+  .agent-prose th {
+    @apply bg-muted font-semibold;
+  }
+  .agent-prose hr {
+    @apply my-6;
+  }
+}

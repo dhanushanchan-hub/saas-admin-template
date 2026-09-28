@@ -11,7 +11,9 @@
   },
   "upload_source_maps": true,
   "vars": {
-    "EXAMPLE_VALUE": "example_value"
+    "EXAMPLE_VALUE": "example_value",
+    "COMPANY_NAME": "TIVA",
+    "AGENT_MODEL": "claude-opus-5"
   },
   "d1_databases": [
     {
@@ -20,11 +22,30 @@
       "database_id": "9503ed5f-3ac1-4f0e-840a-b408aaabc038"
     }
   ],
+  // The Founder's dump: uploaded originals, read with Workers AI.
+  "r2_buckets": [
+    {
+      "binding": "DUMP",
+      "bucket_name": "tiva-hq-dump"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
   "workflows": [
     {
       "name": "saas-admin-template-customer-workflow",
       "binding": "CUSTOMER_WORKFLOW",
       "class_name": "CustomerWorkflow"
+    },
+    {
+      "name": "saas-admin-template-mission-workflow",
+      "binding": "MISSION_WORKFLOW",
+      "class_name": "MissionWorkflow"
     }
-  ]
+  ],
+  // Hourly heartbeat for the agent team's 24/7 routines.
+  "triggers": {
+    "crons": ["0 * * * *"]
+  }
 }

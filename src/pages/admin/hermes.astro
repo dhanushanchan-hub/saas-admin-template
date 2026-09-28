@@ -1,0 +1,19 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { HermesChat } from '@/components/agents/hermes-chat';
+import { MissingModelKeyCard } from '@/components/agents/missing-model-key-card';
+import { ConversationService } from '@/lib/services/conversation';
+
+const { API_TOKEN, ANTHROPIC_API_KEY, DB } = Astro.locals.runtime.env;
+const messages = await new ConversationService(DB).getRecent(50);
+---
+
+<Layout title="Hermes">
+  {!ANTHROPIC_API_KEY && <MissingModelKeyCard />}
+  <HermesChat
+    client:only="react"
+    apiToken={API_TOKEN}
+    disabled={!ANTHROPIC_API_KEY}
+    initialMessages={messages.map(({ role, content, mission_id, knowledge_id }) => ({ role, content, mission_id, knowledge_id }))}
+  />
+</Layout>
