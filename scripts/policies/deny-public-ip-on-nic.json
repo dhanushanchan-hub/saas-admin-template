@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "displayName": "Deny attaching a public IP directly to a VM NIC",
+    "description": "Prevents new Microsoft.Network/networkInterfaces from being created with a public IP configuration. Force VM access through Azure Bastion, Application Gateway, or Front Door (F-02 in VM_SETUP_ANALYSIS.md).",
+    "mode": "Indexed",
+    "policyType": "Custom",
+    "metadata": {
+      "category": "Network",
+      "version": "1.0.0"
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          { "field": "type", "equals": "Microsoft.Network/networkInterfaces" },
+          {
+            "count": {
+              "field": "Microsoft.Network/networkInterfaces/ipConfigurations[*]",
+              "where": {
+                "field": "Microsoft.Network/networkInterfaces/ipConfigurations[*].publicIPAddress.id",
+                "exists": "true"
+              }
+            },
+            "greater": 0
+          }
+        ]
+      },
+      "then": { "effect": "deny" }
+    }
+  }
+}
