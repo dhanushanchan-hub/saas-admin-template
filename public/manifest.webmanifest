@@ -1,9 +1,9 @@
 {
   "name": "TIVA HQ",
   "short_name": "TIVA HQ",
-  "description": "Hermes and the TIVA executive agent team.",
+  "description": "The TIVA master dashboard: Hermes, the executive agent team and the Build Studio.",
   "id": "/admin/hermes",
-  "start_url": "/admin/hermes",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
@@ -17,6 +17,7 @@
   "shortcuts": [
     { "name": "Talk to Hermes", "url": "/admin/hermes" },
     { "name": "Command Center", "url": "/admin/command" },
+    { "name": "Build Studio", "url": "/admin/studio" },
     { "name": "Missions", "url": "/admin/missions" }
   ]
 }

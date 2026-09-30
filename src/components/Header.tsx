@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
 const groups = [
+  [{ href: "/", label: "Dashboard" }],
   [
     { href: "/admin/hermes", label: "Hermes" },
     { href: "/admin/command", label: "Command Center" },
@@ -10,6 +11,7 @@ const groups = [
     { href: "/admin/knowledge", label: "Knowledge" },
     { href: "/admin/routines", label: "Routines" },
     { href: "/admin/entities", label: "Group Structure" },
+    { href: "/admin/studio", label: "Build Studio" },
   ],
   [
     { href: "/admin", label: "Admin" },

@@ -5,7 +5,14 @@ import {
   toDbTime,
   type AgentTeamEnv,
   type Routine,
+  type RoutineCadence,
 } from "../lib/agents/types";
+
+const PERIOD_MS: Record<RoutineCadence, number> = {
+  hourly: 60 * 60 * 1000,
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
+};
 
 // The most recent time this routine was scheduled to run, at or before `now`.
 export const lastOccurrence = (routine: Routine, now: Date) => {
@@ -31,6 +38,18 @@ export const isDue = (routine: Routine, now: Date) => {
   if (!routine.enabled) return false;
   const since = parseDbTime(routine.last_run_at ?? routine.created_at)!;
   return since < lastOccurrence(routine, now);
+};
+
+// When the routine launches next: at the next hourly cron tick if it's due,
+// otherwise at its next scheduled time. Null while it's paused.
+export const nextRun = (routine: Routine, now: Date) => {
+  if (!routine.enabled) return null;
+  if (isDue(routine, now)) {
+    const tick = new Date(now);
+    tick.setUTCHours(tick.getUTCHours() + 1, 0, 0, 0);
+    return tick;
+  }
+  return new Date(lastOccurrence(routine, now).getTime() + PERIOD_MS[routine.cadence]);
 };
 
 // Called by the Worker's hourly cron trigger. Launches a mission for every

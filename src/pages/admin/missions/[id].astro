@@ -1,15 +1,18 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { AutoRefresh } from '@/components/agents/auto-refresh';
+import { BuildPackActions } from '@/components/agents/build-pack-actions';
 import { StatusBadge } from '@/components/agents/status-badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { AgentService } from '@/lib/services/agent';
 import { EntityService } from '@/lib/services/entity';
 import { MissionService } from '@/lib/services/mission';
+import { buildPack } from '@/lib/agents/build-pack';
 import { formatTime } from '@/lib/agents/format';
 import { renderMarkdown } from '@/lib/agents/markdown';
 import { isActive } from '@/lib/agents/orchestrator';
+import { isStudioAgent } from '@/lib/agents/studio';
 
 const { DB } = Astro.locals.runtime.env;
 const id = Number(Astro.params.id);
@@ -25,6 +28,15 @@ const [tasks, agents, entity] = await Promise.all([
 ]);
 const agentsById = new Map(agents.map((agent) => [agent.id, agent]));
 const running = isActive(mission);
+
+// Build Studio work ends in a build pack to hand to Claude Code.
+const studioDelivered = tasks.some((task) => {
+  const agent = agentsById.get(task.agent_id);
+  return agent && isStudioAgent(agent) && task.status === 'completed';
+});
+const pack = !running && studioDelivered
+  ? buildPack({ mission, entity, tasks, agents: agentsById, url: Astro.url.href })
+  : null;
 
 const phases = [
   { key: 'planning', label: 'Hermes plans' },
@@ -95,6 +107,32 @@ const phaseIndex = phases.findIndex((phase) => phase.key === mission.status);
             <p class="mt-1 text-xs text-muted-foreground">Owner: {decision.owner}</p>
           </div>
         ))}
+      </CardContent>
+    </Card>
+  )}
+
+  {pack && (
+    <Card id="build-pack">
+      <CardHeader>
+        <CardTitle>Build pack</CardTitle>
+        <CardDescription>
+          Everything the team produced for this build, as one document for Claude Code. It builds and
+          tests it, and asks you before anything goes live.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <BuildPackActions client:load pack={pack} fileName={`build-pack-${mission.id}.md`} />
+        <ol class="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            <span class="font-medium text-foreground">On your desktop:</span> ask Claude Code, OpenClaw or Codex
+            to "build TIVA build pack #{mission.id}". With the tiva-agent-team skill installed, it fetches the
+            pack with <code>tiva.mjs build-pack {mission.id}</code>.
+          </li>
+          <li>
+            <span class="font-medium text-foreground">On your phone or the web:</span> copy the build pack, open
+            Claude Code on the product's repository, paste it and say "Build this".
+          </li>
+        </ol>
       </CardContent>
     </Card>
   )}

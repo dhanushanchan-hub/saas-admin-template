@@ -32,3 +32,16 @@ const marked = new Marked({
 
 export const renderMarkdown = (source: string | null | undefined) =>
   source ? (marked.parse(source, { async: false }) as string) : "";
+
+// The opening of a Markdown document, cut at a paragraph break once it passes
+// `limit` characters, so a long brief can be previewed without breaking it.
+export const markdownExcerpt = (source: string, limit = 900) => {
+  const blocks = source.trim().split(/\n\s*\n/);
+  let text = blocks[0] ?? "";
+  let used = 1;
+  while (used < blocks.length && text.length + blocks[used].length <= limit) {
+    text += `\n\n${blocks[used]}`;
+    used++;
+  }
+  return { text, truncated: used < blocks.length };
+};

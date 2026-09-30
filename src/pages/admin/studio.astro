@@ -1,0 +1,158 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { BuildRequestForm } from '@/components/agents/build-request-form';
+import { MissingModelKeyCard } from '@/components/agents/missing-model-key-card';
+import { StatusBadge } from '@/components/agents/status-badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { AgentService } from '@/lib/services/agent';
+import { EntityService } from '@/lib/services/entity';
+import { MissionService } from '@/lib/services/mission';
+import { formatTime } from '@/lib/agents/format';
+import { BUILD_REQUEST_PREFIX, isStudioAgent } from '@/lib/agents/studio';
+
+const { API_TOKEN, ANTHROPIC_API_KEY, DB } = Astro.locals.runtime.env;
+
+const missionService = new MissionService(DB);
+const [agents, entities, running] = await Promise.all([
+  new AgentService(DB).getAll(),
+  new EntityService(DB).getTree(),
+  missionService.getRunningTaskCounts(),
+]);
+const studio = agents.filter(isStudioAgent);
+const builds = await missionService.getForTeam(
+  studio.map((agent) => agent.id),
+  { prefix: BUILD_REQUEST_PREFIX, limit: 30 },
+);
+const entityNames = new Map(entities.map((entity) => [entity.id, entity.name]));
+const workingOn = new Map(running.map((row) => [row.agent_id, row.running]));
+
+const steps = [
+  {
+    title: 'The studio plans and writes it',
+    text: 'Daedalus scopes the first version. Iris designs it, Loom, Kite and Anvil write the code, and Verity writes the tests and the launch checklist.',
+  },
+  {
+    title: 'You approve',
+    text: 'Read the brief on the mission page and answer the decisions the studio raises.',
+  },
+  {
+    title: 'Claude Code builds it',
+    text: 'Hand the build pack to Claude Code on your desktop or on the web. It creates the repository, builds and tests it, and asks you before anything goes live.',
+  },
+];
+---
+
+<Layout title="Build Studio">
+  {!ANTHROPIC_API_KEY && <MissingModelKeyCard />}
+
+  <p class="max-w-3xl text-muted-foreground">
+    Your app, website and software builders. Tell them what to build: they scope the first version,
+    design it, write the code and the tests, and hand you a build pack. Give the build pack to Claude
+    Code to build it. Nothing goes live until you approve.
+  </p>
+
+  {studio.length === 0 ? (
+    <Card className="border-amber-500">
+      <CardHeader>
+        <CardTitle>Add the builder team</CardTitle>
+        <CardDescription>The Build Studio's agents aren't in the database yet.</CardDescription>
+      </CardHeader>
+      <CardContent className="text-sm text-muted-foreground">
+        Apply the latest database migration with <code>npm run db:migrate:remote</code> (it adds
+        <code>migrations/0008_add_build_studio.sql</code>), then reload this page.
+      </CardContent>
+    </Card>
+  ) : (
+    <div class="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>New build</CardTitle>
+          <CardDescription>A website, an app, software, or an automation, for any company in the group.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BuildRequestForm
+            client:only="react"
+            apiToken={API_TOKEN}
+            entities={entities.map(({ id, name, depth }) => ({ id, name, depth }))}
+            team={studio.filter((agent) => agent.status === 'active').map(({ name, title }) => ({ name, title }))}
+            disabled={!ANTHROPIC_API_KEY}
+          />
+        </CardContent>
+      </Card>
+
+      <div class="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Builds</CardTitle>
+            <CardDescription>Everything the studio has worked on, newest first. Open a finished build for its build pack.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {builds.length ? (
+              <ul class="divide-y">
+                {builds.map((mission) => (
+                  <li class="flex flex-wrap items-center justify-between gap-2 py-3">
+                    <div class="min-w-0">
+                      <a class="font-medium hover:underline" href={`/admin/missions/${mission.id}`}>#{mission.id} {mission.title}</a>
+                      <p class="text-xs text-muted-foreground">
+                        {mission.entity_id ? entityNames.get(mission.entity_id) ?? mission.entity_id : 'Whole group'} · {formatTime(mission.created_at)}
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs">
+                      {mission.status === 'completed' && (
+                        <a class="font-medium underline" href={`/admin/missions/${mission.id}#build-pack`}>Build pack</a>
+                      )}
+                      <StatusBadge status={mission.status} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="text-sm text-muted-foreground">No builds yet. Describe your first one above.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>The studio</CardTitle>
+            <CardDescription>{studio.filter((agent) => agent.status === 'active').length} of {studio.length} builders on duty.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul class="space-y-3">
+              {studio.map((agent) => (
+                <li>
+                  <a href={`/admin/agents/${agent.id}`} class="group flex items-start justify-between gap-2">
+                    <span class="min-w-0">
+                      <span class="block text-sm font-medium group-hover:underline">{agent.name}</span>
+                      <span class="block text-xs text-muted-foreground">{agent.title}</span>
+                    </span>
+                    {workingOn.get(agent.id)
+                      ? <StatusBadge status="running" />
+                      : agent.status === 'paused' && <StatusBadge status="paused" />}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>From idea to live</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol class="grid gap-4 md:grid-cols-3">
+            {steps.map((step, index) => (
+              <li class="rounded-lg border p-4">
+                <p class="text-sm font-semibold">{index + 1}. {step.title}</p>
+                <p class="mt-1 text-sm text-muted-foreground">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
+    </div>
+  )}
+</Layout>

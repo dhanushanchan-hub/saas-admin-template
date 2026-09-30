@@ -16,6 +16,7 @@ Commands
   mission "<directive>" [--entity <id>] [--priority low|normal|high|critical] [--title "<title>"] [--wait]
                                          Give Hermes a directive; --wait blocks until the brief is ready
   status <mission-id>                    Progress, assignments and brief for one mission
+  build-pack <mission-id>                Everything a Build Studio mission produced, as one Markdown document to build from
   missions [--status <status>] [--limit <n>]
   remember "<text>" [--title "<title>"] [--scope global|department|entity|agent] [--ref <id>]
                                          Save something to the team's long-term memory
@@ -49,7 +50,8 @@ const parseArgs = (argv) => {
   return { positional, flags };
 };
 
-const api = async (method, path, body) => {
+// Returns the parsed JSON body, or the text itself with { text: true }.
+const api = async (method, path, body, { text: asText = false } = {}) => {
   const headers = {
     Authorization: `Bearer ${token}`,
     // Astro rejects body-less POSTs without a JSON content type.
@@ -65,6 +67,7 @@ const api = async (method, path, body) => {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
+  if (asText && response.ok) return text;
   let data;
   try {
     data = text ? JSON.parse(text) : null;
@@ -153,6 +156,12 @@ const commands = {
     const id = Number(positional[0]);
     if (!Number.isInteger(id)) fail("Usage: node tiva.mjs status <mission-id>");
     printMission(await api("GET", `/api/missions/${id}`));
+  },
+
+  async "build-pack"({ positional }) {
+    const id = Number(positional[0]);
+    if (!Number.isInteger(id)) fail("Usage: node tiva.mjs build-pack <mission-id>");
+    process.stdout.write(await api("GET", `/api/missions/${id}/pack`, undefined, { text: true }));
   },
 
   async missions({ flags }) {
