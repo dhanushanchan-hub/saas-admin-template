@@ -32,6 +32,19 @@ export type PullRequest = {
 
 export const DELIVERIES: Delivery[] = [
   {
+    number: 8,
+    title: "Master Dashboard home page, and the Build Studio for apps, websites and software",
+    status: "review",
+    opened_at: "2026-09-30T12:15:05Z",
+    merged_at: null,
+    summary:
+      "This home page: everything TIVA HQ runs and everything Claude Code has built, in one place. Plus the Build Studio, six agents who design and code your websites, apps and software and hand each build to Claude Code as a build pack.",
+    links: [
+      { label: "Master Dashboard", href: "/" },
+      { label: "Build Studio", href: "/admin/studio" },
+    ],
+  },
+  {
     number: 7,
     title: "Azure VM audit — end-to-end analysis + auto-remediation",
     status: "review",
