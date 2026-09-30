@@ -2,17 +2,10 @@
 import Layout from '@/layouts/Layout.astro';
 import { AddEntityButton } from '@/components/agents/entity-form';
 import { EntityService } from '@/lib/services/entity';
+import { ENTITY_KIND_LABELS } from '@/lib/agents/format';
 
 const { API_TOKEN, DB } = Astro.locals.runtime.env;
 const entities = await new EntityService(DB).getTree();
-
-const kindLabels: Record<string, string> = {
-  holding: 'Holding company',
-  subholding: 'Category holding',
-  subsidiary: 'Operating company',
-  brand: 'Brand',
-  venture: 'Venture',
-};
 ---
 
 <Layout title="Group Structure">
@@ -43,7 +36,7 @@ const kindLabels: Record<string, string> = {
             <p class="mt-1 font-mono text-xs text-muted-foreground">{entity.id}</p>
           </div>
           <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-md border px-2 py-0.5">{kindLabels[entity.kind] ?? entity.kind}</span>
+            <span class="rounded-md border px-2 py-0.5">{ENTITY_KIND_LABELS[entity.kind] ?? entity.kind}</span>
             {entity.category && <span class="rounded-md border px-2 py-0.5">{entity.category}</span>}
             {entity.region && <span class="rounded-md border px-2 py-0.5">{entity.region}</span>}
             {entity.jurisdiction && <span class="rounded-md border px-2 py-0.5">{entity.jurisdiction}</span>}

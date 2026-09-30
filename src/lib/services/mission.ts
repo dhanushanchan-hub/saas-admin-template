@@ -13,6 +13,8 @@ type TaskRow = Omit<Task, "depends_on" | "decisions"> & {
   decisions: string | null;
 };
 
+const IN_FLIGHT = `status IN ('queued', 'planning', 'executing', 'synthesizing')`;
+
 const parseJson = <T>(value: string | null, fallback: T): T => {
   if (!value) return fallback;
   try {
@@ -74,7 +76,7 @@ export class MissionService {
   async getStats() {
     const row = await this.DB.prepare(
       `SELECT
-        SUM(CASE WHEN status IN ('queued', 'planning', 'executing', 'synthesizing') THEN 1 ELSE 0 END) AS in_flight,
+        SUM(CASE WHEN ${IN_FLIGHT} THEN 1 ELSE 0 END) AS in_flight,
         SUM(CASE WHEN status = 'completed' AND completed_at >= datetime('now', '-1 day') THEN 1 ELSE 0 END) AS completed_24h,
         SUM(CASE WHEN status = 'failed' AND updated_at >= datetime('now', '-1 day') THEN 1 ELSE 0 END) AS failed_24h,
         COUNT(*) AS total
@@ -91,6 +93,45 @@ export class MissionService {
       failed_24h: row?.failed_24h ?? 0,
       total: row?.total ?? 0,
     };
+  }
+
+  // The mission that finished most recently, for the latest brief.
+  async getLatestCompleted() {
+    const row = await this.DB.prepare(
+      `SELECT * FROM missions WHERE status = 'completed'
+       ORDER BY completed_at DESC, id DESC LIMIT 1`,
+    ).first<MissionRow>();
+    return row ? toMission(row) : null;
+  }
+
+  // Mission counts for each entity. Missions for the whole group have a null
+  // entity_id.
+  async getCountsByEntity() {
+    const response = await this.DB.prepare(
+      `SELECT entity_id, COUNT(*) AS total,
+        SUM(CASE WHEN ${IN_FLIGHT} THEN 1 ELSE 0 END) AS in_flight
+       FROM missions GROUP BY entity_id`,
+    ).all<{ entity_id: string | null; total: number; in_flight: number }>();
+    return response.results;
+  }
+
+  // Missions any of these agents has an assignment on, plus missions whose
+  // directive starts with `prefix` (so a request shows up before it's
+  // planned), newest first.
+  async getForTeam(
+    agentIds: string[],
+    { prefix, limit = 20 }: { prefix?: string; limit?: number } = {},
+  ) {
+    if (!agentIds.length && !prefix) return [];
+    const response = await this.DB.prepare(
+      `SELECT * FROM missions
+       WHERE id IN (SELECT mission_id FROM tasks WHERE agent_id IN (SELECT value FROM json_each(?)))
+          OR (? IS NOT NULL AND instr(directive, ?) = 1)
+       ORDER BY id DESC LIMIT ?`,
+    )
+      .bind(JSON.stringify(agentIds), prefix ?? null, prefix ?? null, limit)
+      .all<MissionRow>();
+    return response.results.map(toMission);
   }
 
   // Decisions from recently completed missions, newest first. These are what
@@ -184,6 +225,15 @@ export class MissionService {
       .bind(agentId, limit)
       .all<TaskRow>();
     return response.results.map(toTask);
+  }
+
+  // How many assignments each agent is working on right now.
+  async getRunningTaskCounts() {
+    const response = await this.DB.prepare(
+      `SELECT agent_id, COUNT(*) AS running FROM tasks
+       WHERE status = 'running' GROUP BY agent_id`,
+    ).all<{ agent_id: string; running: number }>();
+    return response.results;
   }
 
   // Replaces a mission's plan. Safe to repeat if the planning step retries.

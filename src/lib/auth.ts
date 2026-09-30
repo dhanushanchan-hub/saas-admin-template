@@ -92,4 +92,4 @@ export const safeNext = (value: unknown) =>
   !value.startsWith("/\\") &&
   !value.startsWith("/login")
     ? value
-    : "/admin/hermes";
+    : "/";

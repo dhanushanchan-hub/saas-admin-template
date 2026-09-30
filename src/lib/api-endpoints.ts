@@ -422,6 +422,18 @@ const apiEndpoints: APIEndpoint[] = [
   },
   {
     method: "GET",
+    path: "/api/missions/:id/pack",
+    description:
+      "The mission's build pack as Markdown (text/markdown): the directive, the plan, every deliverable, the brief and the decisions. Coding agents such as Claude Code build from it.",
+    responses: [
+      {
+        name: "Response",
+        example: "# Build pack: Tiva Beverages website\n\nMission #12 · Tiva Beverages · completed · ...",
+      },
+    ],
+  },
+  {
+    method: "GET",
     path: "/api/briefing",
     description: "Snapshot for the Founder's assistant: missions in flight, the latest briefs and the decisions waiting on the Founder.",
     responses: [
