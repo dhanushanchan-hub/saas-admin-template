@@ -1,0 +1,42 @@
+{
+  "properties": {
+    "displayName": "Audit VMs whose Update Manager assessment is not AutomaticByPlatform",
+    "description": "Flags Microsoft.Compute/virtualMachines that do not have periodic assessment enabled through Azure Update Manager (F-01 in VM_SETUP_ANALYSIS.md).",
+    "mode": "Indexed",
+    "policyType": "Custom",
+    "metadata": {
+      "category": "Update Management",
+      "version": "1.0.0"
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          { "field": "type", "equals": "Microsoft.Compute/virtualMachines" },
+          {
+            "anyOf": [
+              {
+                "allOf": [
+                  { "field": "Microsoft.Compute/virtualMachines/osProfile.linuxConfiguration.patchSettings.assessmentMode", "exists": "true" },
+                  { "field": "Microsoft.Compute/virtualMachines/osProfile.linuxConfiguration.patchSettings.assessmentMode", "notEquals": "AutomaticByPlatform" }
+                ]
+              },
+              {
+                "allOf": [
+                  { "field": "Microsoft.Compute/virtualMachines/osProfile.windowsConfiguration.patchSettings.assessmentMode", "exists": "true" },
+                  { "field": "Microsoft.Compute/virtualMachines/osProfile.windowsConfiguration.patchSettings.assessmentMode", "notEquals": "AutomaticByPlatform" }
+                ]
+              },
+              {
+                "allOf": [
+                  { "field": "Microsoft.Compute/virtualMachines/osProfile.linuxConfiguration.patchSettings.assessmentMode", "exists": "false" },
+                  { "field": "Microsoft.Compute/virtualMachines/osProfile.windowsConfiguration.patchSettings.assessmentMode", "exists": "false" }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "then": { "effect": "audit" }
+    }
+  }
+}
