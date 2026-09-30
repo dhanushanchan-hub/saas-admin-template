@@ -46,11 +46,15 @@ param(
   [switch]$SkipTools,
   [switch]$SkipHermes,
   [switch]$SkipMcp,
+  [switch]$SkipExtraMcp,
+  [switch]$SkipCopilot,
   [switch]$SkipShortcuts,
   # Opt-in extras.
   [switch]$InstallDocker,
   [switch]$InstallVSCode,
-  [switch]$StartTools
+  [switch]$StartTools,
+  # Folder the filesystem MCP server may read/write (default: your home folder).
+  [string]$FilesystemRoot = $env:USERPROFILE
 )
 
 Set-StrictMode -Version Latest
@@ -180,6 +184,17 @@ if ($SkipTools) {
   Ensure-Npm opencode "opencode-ai"               "OpenCode"
   Ensure-Npm openclaw "openclaw"                  "OpenClaw"
   Ensure-Npm wrangler "wrangler"                  "Wrangler"
+  if (-not $SkipCopilot) {
+    Ensure-Npm copilot "@github/copilot" "GitHub Copilot CLI"
+    # The Copilot editor extensions, when VS Code is present.
+    if (Have code) {
+      Try-Step "VS Code Copilot extensions" {
+        code --install-extension github.copilot --force | Out-Null
+        code --install-extension github.copilot-chat --force | Out-Null
+      } | Out-Null
+      Record "GitHub Copilot (VS Code)" "ok" "extensions installed"
+    }
+  }
 
   if (-not $SkipHermes) {
     if (Have uv) {
@@ -265,6 +280,31 @@ if ($SkipMcp) {
       } | Out-Null
       Good "Claude Code wired (claude mcp add tiva-hq)"
       Record "MCP: Claude Code" "ok" "tiva-hq added"
+    }
+
+    # Extra MCP servers, so every client gets the browser, GitHub, filesystem
+    # and Windows/desktop-control tools too. Each runs on demand via npx; on
+    # Windows the reliable form is `cmd /c npx`. GitHub uses the official hosted
+    # server through the mcp-remote bridge and signs in with OAuth on first use.
+    if (-not $SkipExtraMcp) {
+      $extra = @(
+        @{ name = "github";            npx = @("mcp-remote", "https://api.githubcopilot.com/mcp/") },
+        @{ name = "playwright";        npx = @("@playwright/mcp@latest") },
+        @{ name = "filesystem";        npx = @("@modelcontextprotocol/server-filesystem", $FilesystemRoot) },
+        @{ name = "desktop-commander"; npx = @("@wonderwhy-er/desktop-commander") }
+      )
+      foreach ($s in $extra) {
+        $cfg = @{ command = "cmd"; args = @("/c", "npx", "-y") + $s.npx }
+        Merge-McpServer $claudeCfg $s.name $cfg | Out-Null
+        Merge-McpServer $cursorCfg $s.name $cfg | Out-Null
+        if (Have claude) {
+          Try-Step "claude mcp add $($s.name)" {
+            claude mcp add $s.name --scope user -- npx -y @($s.npx) 2>$null | Out-Null
+          } | Out-Null
+        }
+        Record "MCP: $($s.name)" "ok" "wired to Claude Desktop, Cursor, Claude Code"
+      }
+      Good "Extra MCP servers wired: github, playwright (browser), filesystem, desktop-commander (Windows control)"
     }
   }
 }

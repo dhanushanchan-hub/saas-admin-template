@@ -10,10 +10,10 @@ re-run it any time; it only installs what's missing and never deletes your data.
 | Chapter | What it does |
 | --- | --- |
 | 1. Base tools | Git, GitHub CLI, Node LTS, Python, uv, Tailscale (Docker & VS Code optional) |
-| 2. Agents | Claude Code, Codex, Gemini CLI, OpenCode, OpenClaw, Hermes Agent, Wrangler |
+| 2. Agents | Claude Code, Codex, Gemini CLI, OpenCode, OpenClaw, Hermes Agent, **GitHub Copilot**, Wrangler |
 | 3. Connection | Saves `TIVA_HQ_URL` + `TIVA_HQ_TOKEN` as user environment variables |
 | 4. Skill | Installs the `tiva-agent-team` skill into every agent |
-| 5. MCP | Wires Claude Desktop, Cursor and Claude Code to the bundled TIVA MCP server |
+| 5. MCP | Wires Claude Desktop, Cursor and Claude Code to the TIVA MCP server **plus GitHub, Web browser (Playwright), Filesystem and Desktop Commander (Windows control)** |
 | 6. Tools | Optionally brings up the self-hosted stack (`-StartTools`, needs Docker) |
 | 7. Shortcuts | Desktop links to the Junction, Hermes and Cloud pages |
 | 8. Health | Verifies every tool and prints a launch-ready status table |
@@ -47,6 +47,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 | `-SkipTools` | Don't install base tools or agents (just wire connection, skill, MCP) |
 | `-SkipHermes` | Skip Hermes Agent |
 | `-SkipMcp` | Don't touch MCP client configs |
+| `-SkipExtraMcp` | Wire only the TIVA MCP server (skip GitHub, browser, filesystem, desktop-commander) |
+| `-SkipCopilot` | Skip GitHub Copilot CLI and VS Code extensions |
+| `-FilesystemRoot <path>` | Folder the filesystem MCP may read/write (default: your home folder) |
 | `-SkipShortcuts` | Don't create desktop shortcuts |
 | `-InstallDocker` | Install Docker Desktop (needs admin + reboot the first time) |
 | `-InstallVSCode` | Install VS Code |
