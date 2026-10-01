@@ -1,0 +1,9 @@
+{
+  "// note": "Opening this repo in VS Code offers to install these. GitHub Copilot still needs a one-time sign-in with your GitHub account.",
+  "recommendations": [
+    "github.copilot",
+    "github.copilot-chat",
+    "astro-build.astro-vscode",
+    "dbaeumer.vscode-eslint"
+  ]
+}
