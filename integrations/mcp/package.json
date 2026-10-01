@@ -1,0 +1,13 @@
+{
+  "name": "tiva-hq-mcp",
+  "version": "1.0.0",
+  "description": "MCP server exposing the TIVA HQ executive team and cloud agents as tools",
+  "type": "module",
+  "bin": {
+    "tiva-hq-mcp": "tiva-mcp.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true
+}

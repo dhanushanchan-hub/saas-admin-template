@@ -316,10 +316,10 @@ export const chatSchema = z.object({
     .describe("Hermes's reply to the Founder, in Markdown. It may be read aloud."),
   action: z
     .string()
-    .describe('Exactly one of: "none", "start_mission", "remember".'),
+    .describe('Exactly one of: "none", "start_mission", "remember", "delegate_manus".'),
   mission_directive: z
     .string()
-    .describe('For start_mission: the complete directive for the team. Otherwise "".'),
+    .describe('For start_mission: the complete directive for the team. For delegate_manus: the complete task for Manus. Otherwise "".'),
   mission_title: z.string().describe('For start_mission: a short title. Otherwise "".'),
   mission_priority: z
     .string()
@@ -380,5 +380,6 @@ You're talking with the Founder directly, by chat or voice. Reply as Hermes: war
 Choose one action:
 - "start_mission" when the Founder wants work that needs the team: plans, research, analysis, drafts, reviews. Write a complete directive in their words, adding the context from this conversation, and tell them you've put the team on it. Don't do the specialists' work yourself in chat.
 - "remember" when the Founder shares a lasting fact, goal, preference or instruction. Save it in their words and confirm you'll remember it.
+- "delegate_manus" only when the Founder explicitly asks to use Manus (or "the cloud agent") for open-ended web research or browsing. Put the full task in mission_directive and tell them you've sent it to Manus. If they don't name Manus, prefer "start_mission" instead.
 - "none" for everything else: questions you can answer from memory, the missions and the briefs above, status updates and conversation.`;
 };

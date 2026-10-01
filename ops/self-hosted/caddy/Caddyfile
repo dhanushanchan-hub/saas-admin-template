@@ -1,0 +1,33 @@
+# Optional reverse proxy: clean hostnames + automatic HTTPS for the tools.
+# Enable with:  docker compose --profile proxy up -d
+# Set TIVA_DOMAIN in .env (e.g. tools.example.com) and point *.that-domain at
+# this host. Over Tailscale you can skip this and use the host ports instead.
+
+{$TIVA_DOMAIN:tools.localhost} {
+	respond "TIVA tools. Try one of: excalidraw, memos, nocodb, pocketbase, appsmith, hoppscotch, docmost."
+}
+
+excalidraw.{$TIVA_DOMAIN:tools.localhost} {
+	reverse_proxy excalidraw:80
+}
+memos.{$TIVA_DOMAIN:tools.localhost} {
+	reverse_proxy memos:5230
+}
+nocodb.{$TIVA_DOMAIN:tools.localhost} {
+	reverse_proxy nocodb:8080
+}
+pocketbase.{$TIVA_DOMAIN:tools.localhost} {
+	reverse_proxy pocketbase:8090
+}
+appsmith.{$TIVA_DOMAIN:tools.localhost} {
+	reverse_proxy appsmith:80
+}
+hoppscotch.{$TIVA_DOMAIN:tools.localhost} {
+	reverse_proxy hoppscotch:3000
+}
+admin-hoppscotch.{$TIVA_DOMAIN:tools.localhost} {
+	reverse_proxy hoppscotch:3100
+}
+docmost.{$TIVA_DOMAIN:tools.localhost} {
+	reverse_proxy docmost:3000
+}

@@ -1,0 +1,160 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { CloudDispatch } from '@/components/agents/cloud-dispatch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { CloudRunService } from '@/lib/services/cloud';
+import { CLOUD_PLATFORMS, PLATFORM_LABELS, isApiDriven } from '@/lib/agents/cloud';
+import { manusConfigured } from '@/lib/agents/manus';
+
+const env = Astro.locals.runtime.env;
+const { API_TOKEN, DB } = env;
+
+const runs = await new CloudRunService(DB).getAll({ limit: 25 });
+const hasManus = manusConfigured(env);
+const origin = Astro.url.origin;
+
+const platforms = CLOUD_PLATFORMS.map((id) => ({
+  id,
+  label: PLATFORM_LABELS[id],
+  apiDriven: isApiDriven(id),
+}));
+
+const manusProfiles = [
+  env.MANUS_AGENT_PROFILE?.trim() || 'manus-1.6',
+  'manus-1.6-lite',
+  'manus-1.6',
+  'manus-1.6-max',
+].filter((value, index, all) => all.indexOf(value) === index);
+
+// The shared connection block every skill-based agent needs.
+const envBlock = `TIVA_HQ_URL=${origin}\nTIVA_HQ_TOKEN=${API_TOKEN}`;
+
+// How each skill-based platform connects back to TIVA HQ. Manus is left out here
+// because TIVA HQ drives it over its API (the form above), not the skill.
+const connections = [
+  {
+    id: 'claude-code',
+    what: 'Claude Code on the web (claude.ai/code) or the CLI/desktop app.',
+    steps: [
+      'Open claude.ai/code and connect your GitHub repository.',
+      'Copy the tiva-agent-team skill from integrations/agent-skills into the repo (or ~/.claude/skills).',
+      'Add the two lines below to the environment so the skill can reach TIVA HQ.',
+    ],
+  },
+  {
+    id: 'codex',
+    what: "OpenAI's Codex CLI on your machine or an Oracle/Azure box.",
+    steps: [
+      'Install: npm install -g @openai/codex, then sign in with codex.',
+      'Copy the tiva-agent-team skill into ~/.codex/skills.',
+      'Add the two lines below to the environment.',
+    ],
+  },
+  {
+    id: 'openclaw',
+    what: 'OpenClaw, your always-on assistant (desktop, or hosted on Cloudflare).',
+    steps: [
+      'On the Windows desktop, run integrations/openclaw-windows/setup-openclaw.ps1 -HqUrl <url> -HqToken <token>.',
+      'It installs the skill and wires these values for you.',
+    ],
+  },
+  {
+    id: 'hermes',
+    what: 'Hermes Agent (Nous Research), the self-improving agent.',
+    steps: [
+      'Install from hermes-agent.nousresearch.com, then run hermes model to set your provider.',
+      'Copy the tiva-agent-team skill into ~/.hermes/skills.',
+      'Add the two lines below to ~/.hermes/.env.',
+    ],
+  },
+  {
+    id: 'gemini',
+    what: "Google's Gemini CLI.",
+    steps: [
+      'Install: npm install -g @google/gemini-cli, then sign in with gemini.',
+      'Add the two lines below to the environment so it can call TIVA HQ.',
+    ],
+  },
+];
+---
+
+<Layout title="TIVA Cloud">
+  <p class="max-w-3xl text-muted-foreground">
+    Hand work to outside agent platforms and keep every run in one place.
+    <strong>Manus</strong> runs in its own cloud and TIVA HQ drives it directly, so
+    you can send a task below and watch it here. <strong>Claude Code, Codex, OpenClaw,
+    Hermes Agent</strong> and <strong>Gemini</strong> run on their own surfaces and
+    connect back to your executive team through the <code>tiva-agent-team</code> skill —
+    the connection steps are below.
+  </p>
+
+  <Card>
+    <CardHeader>
+      <CardTitle>Send a task</CardTitle>
+      <CardDescription>
+        {hasManus
+          ? 'Manus is connected. Pick a platform, describe the task, and send it.'
+          : 'Manus is not connected yet — set the MANUS_API_KEY secret to send tasks to Manus. You can still log handoffs to the other platforms.'}
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <CloudDispatch
+        client:only="react"
+        apiToken={API_TOKEN}
+        platforms={platforms}
+        manusProfiles={manusProfiles}
+        manusConfigured={hasManus}
+        runs={runs}
+      />
+    </CardContent>
+  </Card>
+
+  <h2 class="mt-2 text-lg font-semibold">Connect your other agents</h2>
+  <p class="max-w-3xl text-sm text-muted-foreground">
+    These agents run wherever you run them. Once connected, each can reach Hermes
+    and the executive team, read your briefs and start missions. Keep the token
+    below private — it's the same key your machine clients use.
+  </p>
+
+  <div class="grid gap-4 lg:grid-cols-2">
+    {connections.map((connection) => (
+      <Card>
+        <CardHeader>
+          <CardTitle>{PLATFORM_LABELS[connection.id]}</CardTitle>
+          <CardDescription>{connection.what}</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-3">
+          <ol class="list-decimal space-y-1 pl-5 text-sm">
+            {connection.steps.map((step) => (
+              <li>{step}</li>
+            ))}
+          </ol>
+          <pre class="overflow-x-auto rounded-md bg-muted p-3 text-xs"><code>{envBlock}</code></pre>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+
+  <Card>
+    <CardHeader>
+      <CardTitle>From the command line or automation</CardTitle>
+      <CardDescription>
+        The same team, callable from any terminal, n8n, or a cron job.
+      </CardDescription>
+    </CardHeader>
+    <CardContent class="space-y-3">
+      <p class="text-sm text-muted-foreground">
+        Send a task to Manus over the API (works from anywhere):
+      </p>
+      <pre class="overflow-x-auto rounded-md bg-muted p-3 text-xs"><code>{`curl -X POST ${origin}/api/agents/cloud \\
+  -H "Authorization: Bearer ${API_TOKEN}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"platform":"manus","prompt":"Research our top 3 competitors and summarise their pricing."}'`}</code></pre>
+      <p class="text-sm text-muted-foreground">
+        Or talk to the whole executive team with the bundled CLI:
+      </p>
+      <pre class="overflow-x-auto rounded-md bg-muted p-3 text-xs"><code>{`node integrations/agent-skills/tiva-agent-team/scripts/tiva.mjs mission "..." --wait`}</code></pre>
+    </CardContent>
+  </Card>
+</Layout>

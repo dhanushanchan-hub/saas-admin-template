@@ -1,0 +1,19 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { JunctionMonitor } from '@/components/agents/junction-monitor';
+import { buildStatusSnapshot } from '@/lib/agents/health';
+
+const env = Astro.locals.runtime.env;
+const snapshot = await buildStatusSnapshot(env, Astro.url.origin);
+---
+
+<Layout title="Master Junction">
+  <p class="max-w-3xl text-muted-foreground">
+    One junction for everything TIVA runs — your executive team, the outside agents,
+    MCP connectors and devices, social platforms, cloud accounts and your self-hosted
+    tools. Each shows whether it's <strong>active</strong> or needs a key, live, and
+    links straight there. It refreshes on its own; a green dot means active.
+  </p>
+
+  <JunctionMonitor client:load apiToken={env.API_TOKEN} initial={snapshot} />
+</Layout>
